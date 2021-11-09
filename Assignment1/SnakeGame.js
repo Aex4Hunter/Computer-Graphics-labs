@@ -6,6 +6,14 @@ const gridDivisions = 10;
 const positionStep = 0.5;
 const snakeBuildBlock = 1;
 
+let ballFlag = false;
+let eCode;
+
+const snakeParts = [];
+//let snakeParts = new Deque();
+let dequeue = new Deque();
+
+
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
 const renderer = new THREE.WebGLRenderer({canvas,
@@ -25,21 +33,66 @@ scene.add(new THREE.AxesHelper(1.5));
 //helping functions
 const generateRandomLocation = () => Math.floor(Math.random() * (gridDivisions / 2 - -gridDivisions / 2 ) + -gridDivisions / 2);
 function snakeHandler(event) {
- if(event.keyCode == 37 && (snakeParts[0].position.x > -gridDivisions/2+1)) {
-  snakeParts[0].position.x -=1;
- } else if(event.keyCode == 38 && (snakeParts[0].position.y < gridDivisions/2 -1)) {
-  snakeParts[0].position.y +=1;
- } else if(event.keyCode == 39 && (snakeParts[0].position.x < gridDivisions/2 -1)) {
-  snakeParts[0].position.x +=1;
- } else if(event.keyCode == 40 && (snakeParts[0].position.y > -gridDivisions/2 +1)) {
-  snakeParts[0].position.y -=1;
+ if(event.keyCode == 37 && (dequeue.getFront().position.x > -gridDivisions/2+1)) {
+  // dequeue.getBack().position.x = dequeue.getFront().position.x;
+  // dequeue.getBack().position.y = dequeue.getFront().position.y;
+  // dequeue.getFront().position.x -=1;
+
+  let x = dequeue.getFront().position.x;
+  let y = dequeue.getFront().position.y;
+  let head = dequeue.removeFront();
+  let tail = dequeue.removeBack();
+  head.position.x-=1;
+  dequeue.insertFront(tail);
+  dequeue.insertFront(head);
+
+ } else if(event.keyCode == 38 && (dequeue.getFront().position.y < gridDivisions/2 -1)) {
+  // dequeue.getBack().position.x = dequeue.getFront().position.x;
+  // dequeue.getBack().position.y = dequeue.getFront().position.y;
+  // dequeue.getFront().position.y +=1;
+
+  let x = dequeue.getFront().position.x;
+  let y = dequeue.getFront().position.y;
+  let head = dequeue.removeFront();
+  let tail = dequeue.removeBack();
+  head.position.y+=1;
+  dequeue.insertFront(tail);
+  dequeue.insertFront(head);
+
+ } else if(event.keyCode == 39 && (dequeue.getFront().position.x < gridDivisions/2 -1)) {
+  //snakeParts[0].position.x +=1;
+  // dequeue.getBack().position.y = dequeue.getFront().position.y;
+  // dequeue.getBack().position.x = dequeue.getFront().position.x;
+  // dequeue.getFront().position.x +=1;
+
+  let x = dequeue.getFront().position.x;
+  let y = dequeue.getFront().position.y;
+  let head = dequeue.removeFront();
+  let tail = dequeue.removeBack();
+  head.position.x+=1;
+  dequeue.insertFront(tail);
+  dequeue.insertFront(head);
+ } else if(event.keyCode == 40 && (dequeue.getFront().position.y > -gridDivisions/2 +1)) {
+  //snakeParts[0].position.y -=1;
+  // dequeue.getBack().position.x = dequeue.getFront().position.x;
+  // dequeue.getBack().position.y = dequeue.getFront().position.y;
+  // dequeue.getFront().position.y -=1;
+  let x = dequeue.getFront().position.x;
+  let y = dequeue.getFront().position.y;
+  let head = dequeue.removeFront();
+  let tail = dequeue.removeBack();
+  head.position.y-=1;
+  console.log(head.position.y);
+  dequeue.insertFront(tail);
+  dequeue.insertFront(head);  
  }
-// console.log(event.keyCode);
-  
+
+
+ eCode = event.keyCode;  
 }
 
-
 document.addEventListener('keydown', snakeHandler);
+//console.log(eCode);
 
 //Plane & Grid
 const plane = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -48,33 +101,47 @@ const gameField = new THREE.Mesh( plane, material );
 scene.add(gameField);
 
 const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#06d6a0', '#06d6a0');
-console.log(gridHelper.position);
 gridHelper.rotation.x = Math.PI / 2;
 gridHelper.colorGrid = 'blue';
 scene.add(gridHelper);
 
 //Snake
-const snakeParts = [];
-
 function generateSnakePart() {
+  let x = 0;
+  let y = 0;
+  let colorPart;
+
+  if(dequeue.getValues().length === 0) {
+    x = generateRandomLocation() + positionStep;
+    y = generateRandomLocation() + positionStep;  
+    colorPart = '#ef476f';
+  } else {
+    x = dequeue.getFront().position.x;
+    y = dequeue.getFront().position.y;
+    colorPart = 'blue'; 
+  }
+  //  x = dequeue.getFront().position.x;
+  //  y = dequeue.getFront().position.y;
+
+  
+
   const geoCube = new THREE.BoxGeometry(snakeBuildBlock, snakeBuildBlock, snakeBuildBlock);
-  const snakeMaterial = new THREE.MeshBasicMaterial( {color: '#ef476f'} );
+  const snakeMaterial = new THREE.MeshBasicMaterial( {color: colorPart} );
   const snakePart = new THREE.Mesh(geoCube, snakeMaterial);
 
-  if(snakeParts.length === 0) {
-    const x = generateRandomLocation();
-    const y = generateRandomLocation();
-    
-    snakePart.position.set(x + positionStep,y + positionStep,positionStep);
-  }
+  snakePart.position.set(x,y,positionStep);
   
-  snakeParts.push(snakePart);
+  dequeue.insertBack(snakePart);
+  // console.log(dequeue);
+  // console.log(dequeue.getFront());
+//  snakeParts.push(snakePart);
   scene.add(snakePart);
-}
+} 
+
+const geoBall = new THREE.SphereGeometry(positionStep);
+const ballMaterial = new THREE.MeshBasicMaterial( {color: '#ffd166'} );
 
 function generateBall() {
-  const geoBall = new THREE.SphereGeometry(positionStep);
-  const ballMaterial = new THREE.MeshBasicMaterial( {color: '#ffd166'} );
   const ballPart = new THREE.Mesh(geoBall, ballMaterial);
 
   //create function GenerateRandomNumber
@@ -89,10 +156,38 @@ function generateBall() {
   }
   ballPart.position.set(x + positionStep,y + positionStep,positionStep);
   scene.add(ballPart);
+
+  ballFlag = true;
+  return ballPart;
 }
 
+const ball = generateBall();
+
 generateSnakePart();
-generateBall();
+
+function pickupBall() {
+  //if(snakeParts[0].position.x == ball.position.x && snakeParts[0].position.y == ball.position.y) 
+  if(dequeue.getFront().position.x == ball.position.x && dequeue.getFront().position.y == ball.position.y) {
+   generateSnakePart();
+
+    let x = generateRandomLocation();
+    let y = generateRandomLocation();
+    let sParts = dequeue.getValues();
+
+    for(let i = 0; i < sParts.length - 1; i++) {
+      if (sParts[i] !== null) {
+        while(sParts[i].position.x == x && sParts[i].position.y == y) {
+          x = generateRandomLocation();
+          y = generateRandomLocation();
+        }
+      }      
+    }
+    ball.position.set(x + positionStep,y + positionStep,positionStep);
+  }   
+}
+
+//pickupBall();
+
 
 
 // const geoCube = new THREE.BoxGeometry(1,1,1);
@@ -108,6 +203,8 @@ const clock = new THREE.Clock();
 
 function render() {
   requestAnimationFrame(render);
+
+  pickupBall();
 
   renderer.render(scene, camera);
   controls.update();
