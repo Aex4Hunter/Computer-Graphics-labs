@@ -13,12 +13,11 @@ const snakeParts = [];
 //let snakeParts = new Deque();
 let dequeue = new Deque();
 
-
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
 const renderer = new THREE.WebGLRenderer({canvas,
                                           antialias: true});
-renderer.setClearColor('rgb(255,255,255)');
+renderer.setClearColor('#dfe7fd');
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
@@ -26,73 +25,80 @@ camera.position.set(7,-7, 18);
 scene.add(camera);
 
 camera.lookAt(scene.position);
-scene.add(new THREE.AxesHelper(1.5));
 
 // Game content starts
 
 //helping functions
+function moveSnake(key) {
+  let x = dequeue.getFront().position.x;
+  let y = dequeue.getFront().position.y;
+  let head = dequeue.removeFront();
+  let tail;
+
+  if(dequeue.getBack() !== null) {
+    tail = dequeue.removeBack();
+    tail.position.y = y;
+    tail.position.x = x;
+    dequeue.insertFront(tail);
+  } 
+
+  switch(key) {
+    case 37:
+     head.position.x-=1;
+      break;
+    case 38:
+      head.position.y+=1;
+      break;
+    case 39:
+      head.position.x+=1;
+      break;
+    case 40:
+      head.position.y-=1; 
+      break; 
+  }  
+  dequeue.insertFront(head);
+}
+
 const generateRandomLocation = () => Math.floor(Math.random() * (gridDivisions / 2 - -gridDivisions / 2 ) + -gridDivisions / 2);
+
 function snakeHandler(event) {
- if(event.keyCode == 37 && (dequeue.getFront().position.x > -gridDivisions/2+1)) {
-  // dequeue.getBack().position.x = dequeue.getFront().position.x;
-  // dequeue.getBack().position.y = dequeue.getFront().position.y;
-  // dequeue.getFront().position.x -=1;
+  eCode = event.keyCode;
+  
+ if((event.keyCode == 37) && dequeue.getFront().position.x > -gridDivisions/2+1) {
+  moveSnake(event.keyCode);
+  const mLeft = setInterval(function() {
+    if((eCode == 37) && dequeue.getFront().position.x > -gridDivisions/2+1) {
+      moveSnake(event.keyCode);
+    } else clearInterval(mLeft);
+  }, 250);
+ } if(event.keyCode == 38) {
+    moveSnake(event.keyCode);
+    const mUp = setInterval(function() {
+      if((eCode == 38)) {
+        moveSnake(event.keyCode);
+      } else clearInterval(mUp);
+    }, 250);
 
-  let x = dequeue.getFront().position.x;
-  let y = dequeue.getFront().position.y;
-  let head = dequeue.removeFront();
-  let tail = dequeue.removeBack();
-  head.position.x-=1;
-  dequeue.insertFront(tail);
-  dequeue.insertFront(head);
+ } else if(event.keyCode == 39) {
+    moveSnake(event.keyCode);
+    const mRight = setInterval(function() {
+      if(eCode == 39) {
+        moveSnake(event.keyCode);
+      } else clearInterval(mRight);
+    }, 250);
 
- } else if(event.keyCode == 38 && (dequeue.getFront().position.y < gridDivisions/2 -1)) {
-  // dequeue.getBack().position.x = dequeue.getFront().position.x;
-  // dequeue.getBack().position.y = dequeue.getFront().position.y;
-  // dequeue.getFront().position.y +=1;
-
-  let x = dequeue.getFront().position.x;
-  let y = dequeue.getFront().position.y;
-  let head = dequeue.removeFront();
-  let tail = dequeue.removeBack();
-  head.position.y+=1;
-  dequeue.insertFront(tail);
-  dequeue.insertFront(head);
-
- } else if(event.keyCode == 39 && (dequeue.getFront().position.x < gridDivisions/2 -1)) {
-  //snakeParts[0].position.x +=1;
-  // dequeue.getBack().position.y = dequeue.getFront().position.y;
-  // dequeue.getBack().position.x = dequeue.getFront().position.x;
-  // dequeue.getFront().position.x +=1;
-
-  let x = dequeue.getFront().position.x;
-  let y = dequeue.getFront().position.y;
-  let head = dequeue.removeFront();
-  let tail = dequeue.removeBack();
-  head.position.x+=1;
-  dequeue.insertFront(tail);
-  dequeue.insertFront(head);
  } else if(event.keyCode == 40 && (dequeue.getFront().position.y > -gridDivisions/2 +1)) {
-  //snakeParts[0].position.y -=1;
-  // dequeue.getBack().position.x = dequeue.getFront().position.x;
-  // dequeue.getBack().position.y = dequeue.getFront().position.y;
-  // dequeue.getFront().position.y -=1;
-  let x = dequeue.getFront().position.x;
-  let y = dequeue.getFront().position.y;
-  let head = dequeue.removeFront();
-  let tail = dequeue.removeBack();
-  head.position.y-=1;
-  console.log(head.position.y);
-  dequeue.insertFront(tail);
-  dequeue.insertFront(head);  
+  moveSnake(event.keyCode);
+  const mdown = setInterval(function() {
+    if((eCode == 40) && dequeue.getFront().position.y > -gridDivisions/2 +1) {
+      moveSnake(event.keyCode);
+    } else clearInterval(mdown);
+  }, 250);
  }
-
-
  eCode = event.keyCode;  
 }
 
 document.addEventListener('keydown', snakeHandler);
-//console.log(eCode);
 
 //Plane & Grid
 const plane = new THREE.PlaneGeometry(planeSize, planeSize);
@@ -102,7 +108,6 @@ scene.add(gameField);
 
 const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#06d6a0', '#06d6a0');
 gridHelper.rotation.x = Math.PI / 2;
-gridHelper.colorGrid = 'blue';
 scene.add(gridHelper);
 
 //Snake
@@ -115,15 +120,23 @@ function generateSnakePart() {
     x = generateRandomLocation() + positionStep;
     y = generateRandomLocation() + positionStep;  
     colorPart = '#ef476f';
-  } else {
-    x = dequeue.getFront().position.x;
+  } else if (eCode == 37) {
+    x = dequeue.getFront().position.x +1;
     y = dequeue.getFront().position.y;
     colorPart = 'blue'; 
+  } else if (eCode == 38) {      
+    x = dequeue.getFront().position.x;
+    y = dequeue.getFront().position.y -1;
+    colorPart = 'blue';
+  } else if (eCode == 39) {      
+    x = dequeue.getFront().position.x - 1;
+    y = dequeue.getFront().position.y;
+    colorPart = 'blue'; 
+  } else if (eCode == 40) {      
+    x = dequeue.getFront().position.x;
+    y = dequeue.getFront().position.y +1;
+    colorPart = 'blue';
   }
-  //  x = dequeue.getFront().position.x;
-  //  y = dequeue.getFront().position.y;
-
-  
 
   const geoCube = new THREE.BoxGeometry(snakeBuildBlock, snakeBuildBlock, snakeBuildBlock);
   const snakeMaterial = new THREE.MeshBasicMaterial( {color: colorPart} );
@@ -132,9 +145,6 @@ function generateSnakePart() {
   snakePart.position.set(x,y,positionStep);
   
   dequeue.insertBack(snakePart);
-  // console.log(dequeue);
-  // console.log(dequeue.getFront());
-//  snakeParts.push(snakePart);
   scene.add(snakePart);
 } 
 
@@ -166,7 +176,6 @@ const ball = generateBall();
 generateSnakePart();
 
 function pickupBall() {
-  //if(snakeParts[0].position.x == ball.position.x && snakeParts[0].position.y == ball.position.y) 
   if(dequeue.getFront().position.x == ball.position.x && dequeue.getFront().position.y == ball.position.y) {
    generateSnakePart();
 
@@ -185,17 +194,24 @@ function pickupBall() {
     ball.position.set(x + positionStep,y + positionStep,positionStep);
   }   
 }
+//setInterval(function(){ alert("Hello"); }, 3000);
 
-//pickupBall();
+// finish alert conditions for the field edge
+// alert conditions for the hit the snake
+// write restart game function to call in restart
+//check if ball generated on the snake
+//imlement camera rotation
+//implement sounds
 
+function restartGame() {
+  let counter = dequeue.size();
+  let headX = dequeue.getFront().position.x;
+  let headY = dequeue.getFront().position.y;
 
-
-// const geoCube = new THREE.BoxGeometry(1,1,1);
-// const snakeMaterial = new THREE.MeshBasicMaterial( {color: '#ef476f'} );
-// const snakePart = new THREE.Mesh(geoCube, snakeMaterial);
-// snakePart.position.set(positionStep,positionStep,positionStep);
-// scene.add(snakePart);
-
+  if(headX == gridDivisions / 2 + positionStep) {
+    alert('Game over! You score is ' + counter);
+  }  
+}
 
 // * Render loop
 const controls = new THREE.TrackballControls(camera, renderer.domElement);
@@ -203,8 +219,11 @@ const clock = new THREE.Clock();
 
 function render() {
   requestAnimationFrame(render);
-
+  
+  restartGame();
   pickupBall();
+
+  
 
   renderer.render(scene, camera);
   controls.update();
