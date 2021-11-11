@@ -6,12 +6,10 @@ const gridDivisions = 10;
 const positionStep = 0.5;
 const snakeBuildBlock = 1;
 
-let ballFlag = false;
+let dequeue = new Deque();
 let eCode;
 
-const snakeParts = [];
-//let snakeParts = new Deque();
-let dequeue = new Deque();
+const snakeParts = dequeue.getValues();
 
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
@@ -54,7 +52,7 @@ function moveSnake(key) {
       break;
     case 40:
       head.position.y-=1; 
-      break; 
+      break;  
   }  
   dequeue.insertFront(head);
 }
@@ -62,12 +60,11 @@ function moveSnake(key) {
 const generateRandomLocation = () => Math.floor(Math.random() * (gridDivisions / 2 - -gridDivisions / 2 ) + -gridDivisions / 2);
 
 function snakeHandler(event) {
-  eCode = event.keyCode;
-  
- if((event.keyCode == 37) && dequeue.getFront().position.x > -gridDivisions/2+1) {
+  eCode = event.keyCode;  
+ if(event.keyCode == 37) {
   moveSnake(event.keyCode);
   const mLeft = setInterval(function() {
-    if((eCode == 37) && dequeue.getFront().position.x > -gridDivisions/2+1) {
+    if(eCode == 37) {
       moveSnake(event.keyCode);
     } else clearInterval(mLeft);
   }, 250);
@@ -87,14 +84,14 @@ function snakeHandler(event) {
       } else clearInterval(mRight);
     }, 250);
 
- } else if(event.keyCode == 40 && (dequeue.getFront().position.y > -gridDivisions/2 +1)) {
+ } else if(event.keyCode == 40) {
   moveSnake(event.keyCode);
   const mdown = setInterval(function() {
-    if((eCode == 40) && dequeue.getFront().position.y > -gridDivisions/2 +1) {
+    if(eCode == 40) {
       moveSnake(event.keyCode);
     } else clearInterval(mdown);
   }, 250);
- }
+ } else return;
  eCode = event.keyCode;  
 }
 
@@ -146,6 +143,7 @@ function generateSnakePart() {
   
   dequeue.insertBack(snakePart);
   scene.add(snakePart);
+  return snakePart;
 } 
 
 const geoBall = new THREE.SphereGeometry(positionStep);
@@ -158,22 +156,20 @@ function generateBall() {
   let x = generateRandomLocation();
   let y = generateRandomLocation();
   
-  for(const part of snakeParts) {
-    while(part.position.x == x && part.position.y == y) {
+  for(let i = 1; i < snakeParts.length; i++) {
+    while(snakeParts[i].position.x == x && snakeParts[i].position.y == y) {
       x = generateRandomLocation();
       y = generateRandomLocation();
     }
   }
+
   ballPart.position.set(x + positionStep,y + positionStep,positionStep);
   scene.add(ballPart);
 
-  ballFlag = true;
   return ballPart;
 }
 
 const ball = generateBall();
-
-generateSnakePart();
 
 function pickupBall() {
   if(dequeue.getFront().position.x == ball.position.x && dequeue.getFront().position.y == ball.position.y) {
@@ -194,44 +190,62 @@ function pickupBall() {
     ball.position.set(x + positionStep,y + positionStep,positionStep);
   }   
 }
-//setInterval(function(){ alert("Hello"); }, 3000);
 
-// finish alert conditions for the field edge
-// alert conditions for the hit the snake
-// write restart game function to call in restart
 //check if ball generated on the snake
 //imlement camera rotation
 //implement sounds
 
-function restartGame() {
-  let counter = dequeue.size();
+const detectGOver = () => {
+  let snake = dequeue.getValues();
   let headX = dequeue.getFront().position.x;
   let headY = dequeue.getFront().position.y;
 
-  if(headX == gridDivisions / 2 + positionStep) {
-    alert('Game over! You score is ' + counter);
-  }  
+  for(let i = 1; i < snake.length; i++) {
+    if(headX == snake[i].position.x && headY == snake[i].position.y) {
+      return true;
+    }
+  }
+
+  //check if snake hits borders
+  if((headX >= gridDivisions / 2 + positionStep)|| 
+    (headX <= -gridDivisions / 2 -positionStep) ||
+    (headY >=  gridDivisions  / 2 +positionStep)  ||
+    (headY <= -gridDivisions / 2 -positionStep)) {
+      return true;
+    }
 }
+
+function restartGame() {
+  let counter = dequeue.size();
+  let snake = dequeue.getValues();
+
+  if(detectGOver()) {
+      for(const part of snake) {
+        scene.remove(part);
+      }      
+      dequeue.clear();
+      eCode = 0;
+      alert('Game over! You score is ' + counter);      
+      generateSnakePart();  
+  }
+}
+
+generateSnakePart();
 
 // * Render loop
 const controls = new THREE.TrackballControls(camera, renderer.domElement);
 const clock = new THREE.Clock();
 
 function render() {
-  requestAnimationFrame(render);
+  requestAnimationFrame(render); 
   
-  restartGame();
   pickupBall();
-
+  restartGame(); 
   
-
   renderer.render(scene, camera);
   controls.update();
 }
 render();
-
-
-
 
 
 // * Deque: https://learnersbucket.com/tutorials/data-structures/implement-deque-data-structure-in-javascript/
@@ -336,7 +350,7 @@ function Deque() {
     return count - lowestCount;
   };
 
-  //Clear the deque
+  //Clear the dequeue
   this.clear = () => {
     count = 0;
     lowestCount = 0;
