@@ -4,7 +4,6 @@ const planeSize = 10;
 const gridSize = 10;
 const gridDivisions = 10;
 const positionStep = 0.5;
-const snakeBuildBlock = 1;
 
 let dequeue = new Deque();
 let eCode;
@@ -23,6 +22,11 @@ camera.position.set(7,-7, 18);
 scene.add(camera);
 
 camera.lookAt(scene.position);
+
+//Place camera on the ball starts
+const angularVelocity = Math.PI;
+const radiusCamera = 7;
+const distanceFromSphere = 0.6;
 
 // Game content starts
 
@@ -99,16 +103,20 @@ document.addEventListener('keydown', snakeHandler);
 
 //Plane & Grid
 const plane = new THREE.PlaneGeometry(planeSize, planeSize);
-const material = new THREE.MeshBasicMaterial( {color: '#118ab2', side: THREE.DoubleSide} );
+const material = new THREE.MeshBasicMaterial( {color: '#001524', side: THREE.DoubleSide} );
 const gameField = new THREE.Mesh( plane, material );
 scene.add(gameField);
 
-const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#06d6a0', '#06d6a0');
+const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#002742', '#002742');
 gridHelper.rotation.x = Math.PI / 2;
 scene.add(gridHelper);
 
 //Snake
 function generateSnakePart() {
+  const snakeBuildBlock = 0.95;
+  const colorHead = '#06d6a0';
+  const colorTail = '#118ab2';
+
   let x = 0;
   let y = 0;
   let colorPart;
@@ -116,23 +124,23 @@ function generateSnakePart() {
   if(dequeue.getValues().length === 0) {
     x = generateRandomLocation() + positionStep;
     y = generateRandomLocation() + positionStep;  
-    colorPart = '#ef476f';
+    colorPart = colorHead;
   } else if (eCode == 37) {
     x = dequeue.getFront().position.x +1;
     y = dequeue.getFront().position.y;
-    colorPart = 'blue'; 
+    colorPart = colorTail; 
   } else if (eCode == 38) {      
     x = dequeue.getFront().position.x;
     y = dequeue.getFront().position.y -1;
-    colorPart = 'blue';
+    colorPart = colorTail;
   } else if (eCode == 39) {      
     x = dequeue.getFront().position.x - 1;
     y = dequeue.getFront().position.y;
-    colorPart = 'blue'; 
+    colorPart = colorTail; 
   } else if (eCode == 40) {      
     x = dequeue.getFront().position.x;
     y = dequeue.getFront().position.y +1;
-    colorPart = 'blue';
+    colorPart = colorTail;
   }
 
   const geoCube = new THREE.BoxGeometry(snakeBuildBlock, snakeBuildBlock, snakeBuildBlock);
@@ -147,7 +155,7 @@ function generateSnakePart() {
 } 
 
 const geoBall = new THREE.SphereGeometry(positionStep);
-const ballMaterial = new THREE.MeshBasicMaterial( {color: '#ffd166'} );
+const ballMaterial = new THREE.MeshBasicMaterial( {color: '#ff2a42'} );
 
 function generateBall() {
   const ballPart = new THREE.Mesh(geoBall, ballMaterial);
@@ -238,10 +246,16 @@ const clock = new THREE.Clock();
 
 function render() {
   requestAnimationFrame(render); 
+
+  const h = clock.getDelta();
+  const t = clock.getElapsedTime();
   
   pickupBall();
-  restartGame(); 
+  restartGame();
   
+  const cameraPosition = new THREE.Vector3(-Math.sin(angularVelocity*t), Math.cos(angularVelocity*t),0).multiplyScalar(radiusCamera*angularVelocity*distanceFromSphere);
+  camera.position.add(cameraPosition.multiplyScalar(h));
+
   renderer.render(scene, camera);
   controls.update();
 }
