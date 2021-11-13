@@ -28,7 +28,7 @@ const angularVelocity = Math.PI;
 const radiusCamera = 7;
 const distanceFromSphere = 0.6;
 
-// Game content starts
+
 
 //helping functions
 function moveSnake(key) {
@@ -107,7 +107,7 @@ const material = new THREE.MeshBasicMaterial( {color: '#001524', side: THREE.Dou
 const gameField = new THREE.Mesh( plane, material );
 scene.add(gameField);
 
-const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#002742', '#002742');
+const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, '#004472', '#004472');
 gridHelper.rotation.x = Math.PI / 2;
 scene.add(gridHelper);
 
@@ -196,12 +196,38 @@ function pickupBall() {
       }      
     }
     ball.position.set(x + positionStep,y + positionStep,positionStep);
+
+    // Add  sound collect part
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
+
+    const addToSnakesound = new THREE.PositionalAudio( listener );
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load( 'sound2.wav', function( buffer ) {
+      addToSnakesound.setBuffer( buffer );
+      addToSnakesound.setRefDistance( 20 );
+      addToSnakesound.play();
+    });    
+    
+    ball.add( addToSnakesound );
+
   }   
 }
 
-//check if ball generated on the snake
-//imlement camera rotation
-//implement sounds
+const generateSound = () => {
+  const listener = new THREE.AudioListener();
+  camera.add( listener );
+
+  const gameOverSound = new THREE.PositionalAudio( listener );
+  const audioLoader = new THREE.AudioLoader();
+  audioLoader.load( 'sound1.wav', function( buffer ) {
+    gameOverSound.setBuffer( buffer );
+    gameOverSound.setRefDistance( 20 );
+    gameOverSound.play();
+  });    
+  
+  ball.add( gameOverSound );
+}
 
 const detectGOver = () => {
   let snake = dequeue.getValues();
@@ -218,9 +244,9 @@ const detectGOver = () => {
   if((headX >= gridDivisions / 2 + positionStep)|| 
     (headX <= -gridDivisions / 2 -positionStep) ||
     (headY >=  gridDivisions  / 2 +positionStep)  ||
-    (headY <= -gridDivisions / 2 -positionStep)) {
+    (headY <= -gridDivisions / 2 -positionStep)) {      
       return true;
-    }
+    }  
 }
 
 function restartGame() {
@@ -228,12 +254,16 @@ function restartGame() {
   let snake = dequeue.getValues();
 
   if(detectGOver()) {
+    generateSound();
       for(const part of snake) {
         scene.remove(part);
       }      
       dequeue.clear();
       eCode = 0;
-      alert('Game over! You score is ' + counter);      
+      camera.position.set(7,-7, 18); 
+      setTimeout(function() {
+        alert('Game over! You score is ' + counter); 
+      }, 200);
       generateSnakePart();  
   }
 }
