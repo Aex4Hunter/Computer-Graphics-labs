@@ -47,15 +47,22 @@ const sphereMaterial = new THREE.MeshPhysicalMaterial({color: secondaryColor});
 const clockCenter = new THREE.Mesh( sphereGeo, sphereMaterial );
 clockCenter.position.y = cylinderHeight / 2 + clockCenterRadius;
 
-const minArrowRadius = 0.012;
+const minArrowRadius = 0.015;
 const arrowSphereGeo = new THREE.SphereGeometry(minArrowRadius, 32, 16);
 const minArrow = new THREE.Mesh(arrowSphereGeo, sphereMaterial);
-minArrow.position.set(0.1, cylinderHeight / 2, 0);
 
-const hourArrowRadius = 0.022;
+const minArrowMatrix = new THREE.Matrix4();
+minArrowMatrix.makeScale(14,1,120);
+minArrow.position.set(0, cylinderHeight / 2, minArrowRadius);
+minArrow.applyMatrix4(minArrowMatrix);
+
+const hourArrowRadius = 0.012;
 const hourArrowSphereGeo = new THREE.SphereGeometry(hourArrowRadius, 32, 16);
 const hourArrow = new THREE.Mesh(hourArrowSphereGeo, sphereMaterial);
-hourArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, -hourArrowRadius);
+const hourArrowMatrix = new THREE.Matrix4();
+hourArrowMatrix.makeScale(20,1,100);
+hourArrow.position.set(0, cylinderHeight / 2, hourArrowRadius);
+hourArrow.applyMatrix4(hourArrowMatrix);
 
 const secondsArrowWidth = 0.04;
 const secondsArrowHeight = cylinderRadius -0.2;
@@ -64,12 +71,6 @@ const boxGeo = new THREE.BoxGeometry(secondsArrowWidth, secondsArrowLength, seco
 const boxMaterial = new THREE.MeshBasicMaterial({color: secondaryColor});
 const secondsArrow = new THREE.Mesh(boxGeo, boxMaterial);
 secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
-
-const arrowMatrix = new THREE.Matrix4();
-arrowMatrix.makeShear(0, 10, 0, 0, 80, 0);
-minArrow.applyMatrix4(arrowMatrix);
-hourArrow.applyMatrix4(arrowMatrix);
-minArrow.rotation.y += Math.PI/2;
 
 const shearMatrix = new THREE.Matrix4();
 shearMatrix.makeShear(0, 6, 0, 0, 6, 0);
@@ -98,8 +99,6 @@ metalness:0.5,
 roughness:0.1,
 flatShading:true,   // see chapter 12 why we need this
 side: THREE.DoubleSide});
-
-
 
 const clockFrame = new THREE.Mesh(frameGeo, frameMat);
 clockFrame.position.y = -0.5;

@@ -1,0 +1,8 @@
+Grading for assignment 1: 14
+
+Requirements:
+  * Red ball can be repositioned inside the snake (req 4): -2
+  * Sound: +1
+
+
+Coding Style:
