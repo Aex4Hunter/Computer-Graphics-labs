@@ -53,7 +53,7 @@ const minArrow = new THREE.Mesh(arrowSphereGeo, sphereMaterial);
 
 const minArrowMatrix = new THREE.Matrix4();
 minArrowMatrix.makeScale(14,1,120);
-minArrow.position.set(0, cylinderHeight / 2, minArrowRadius);
+//minArrow.position.set(0, cylinderHeight / 2, minArrowRadius);
 minArrow.applyMatrix4(minArrowMatrix);
 
 const hourArrowRadius = 0.012;
@@ -70,14 +70,15 @@ const secondsArrowLength = 0.1;
 const boxGeo = new THREE.BoxGeometry(secondsArrowWidth, secondsArrowLength, secondsArrowHeight);
 const boxMaterial = new THREE.MeshBasicMaterial({color: secondaryColor});
 const secondsArrow = new THREE.Mesh(boxGeo, boxMaterial);
-secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
+//secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
+clockBody.add(secondsArrow);
 
 const shearMatrix = new THREE.Matrix4();
 shearMatrix.makeShear(0, 6, 0, 0, 6, 0);
 clockCenter.applyMatrix4(shearMatrix);
 
 clockBody.add(clockCenter);
-clockBody.add(secondsArrow);
+// clockBody.add(secondsArrow);
 clockBody.add(minArrow);
 clockBody.add(hourArrow);
 
@@ -161,22 +162,59 @@ const buildClockTicks = () => {
 
 /* Run the clock */
 
+const runClock = () => {
+  const date = new Date();
+  const secondsNow = date.getSeconds();
+  const minutesNow = date.getMinutes();
+  const hoursNow = date.getHours();
+  rotateArrow(secondsNow, minutesNow, hoursNow);
+}
 
+const rotateArrow = (secondsNow, minutesNow, hoursNow) => {
+  //set arrow to default position
+  secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
+  minArrow.position.set(0, cylinderHeight / 2, 1.6);
+  hourArrow.position.set(0, cylinderHeight / 2, 1.2);
+  const secondsratio = secondsNow / 60;
+  
+  //seconds
+  let secAngle = -secondsNow * 6 * (Math.PI / 180.0);
+  const secEu = new THREE.Euler(0, secAngle, 0);
+  const secMat = new THREE.Matrix4();
+  secMat.makeRotationFromEuler(secEu);
+  secondsArrow.position.applyMatrix4(secMat);
+  secondsArrow.rotation.y = secAngle;
+
+  //minutes
+  let minAngle = -(minutesNow + secondsratio) * 6 * (Math.PI / 180.0);
+  const minEu = new THREE.Euler(0, minAngle, 0);
+  const minMat = new THREE.Matrix4();
+  minMat.makeRotationFromEuler(minEu);
+  minArrow.position.applyMatrix4(minMat);
+  minArrow.rotation.y = minAngle;
+  
+  //hours
+  let hourAngle = -(hoursNow + (secondsratio + minutesNow)/60) * 30 * (Math.PI / 180.0);
+  const hourEu = new THREE.Euler(0, hourAngle, 0);
+  const hourMat = new THREE.Matrix4();
+  hourMat.makeRotationFromEuler(hourEu);
+  hourArrow.position.applyMatrix4(hourMat);
+  hourArrow.rotation.y = hourAngle;
+  
+}
 
 buildClockTicks();
 
-
 // * Render loop
-const controls = new THREE.TrackballControls( camera, renderer.domElement );
+const controls = new THREE.TrackballControls(camera, renderer.domElement);
 controls.dynamicDampingFactor = 1;
 controls.rotateSpeed = 3.0;
 controls.zoomSpeed = 2;
 controls.panSpeed = 1;
 function render() {
   requestAnimationFrame(render);
-
-
   controls.update();
+  runClock();
   // light always from direction of camera
   light.position.copy(camera.position.clone());
   renderer.render(scene, camera);
@@ -189,7 +227,7 @@ render();
 // 2. Create clock ticks +
 // 3. create outline +
 // 4. create arrows +
-// 5. make arrow dynamic 
+// 5. make arrow dynamic  +
 // 6. make a copy of the clock on the other side
 // 7. rework the arrows to scale not shear
 // 7. play with the styles
