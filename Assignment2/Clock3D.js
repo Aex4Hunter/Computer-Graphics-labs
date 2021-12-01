@@ -1,9 +1,12 @@
 /* global setInterval */
+const CLOCK_FRONT = 'front';
+const CLOCK_REVERSE = 'reverse';
 /* Colors */
 const primaryColor = '#FEFEDF';
 const secondaryColor = '#845EC2';
 const bgColor = '#00C9A7';
 const secondaryShadeColor = '#F3C5FF';
+
 
 "use strict";
 // * Initialize webGL
@@ -42,18 +45,34 @@ scene.add(clockBody);
 
 // Arrow & Center of the clock
 const clockCenterRadius = 0.05;
+const minArrowRadius = 0.015;
+const hourArrowRadius = 0.012;
+const secondsArrowWidth = 0.04;
+const secondsArrowHeight = cylinderRadius -0.2;
+const secondsArrowLength = 0.1;
+
+// second time zone clock
+const createClockBody = (clockPosition) => {
+const clockCenterRadius = 0.05;
 const sphereGeo = new THREE.SphereGeometry(clockCenterRadius, 32, 16);
-const sphereMaterial = new THREE.MeshPhysicalMaterial({color: secondaryColor});
+const sphereMaterial = new THREE.MeshPhysicalMaterial({color: '#000222'});
 const clockCenter = new THREE.Mesh( sphereGeo, sphereMaterial );
-clockCenter.position.y = cylinderHeight / 2 + clockCenterRadius;
+
+if(clockPosition == CLOCK_REVERSE) {
+  clockCenter.position.y = -(cylinderHeight / 2 + clockCenterRadius);
+} else clockCenter.position.y = (cylinderHeight / 2 + clockCenterRadius);
+
 
 const minArrowRadius = 0.015;
 const arrowSphereGeo = new THREE.SphereGeometry(minArrowRadius, 32, 16);
 const minArrow = new THREE.Mesh(arrowSphereGeo, sphereMaterial);
-
 const minArrowMatrix = new THREE.Matrix4();
 minArrowMatrix.makeScale(14,1,120);
-//minArrow.position.set(0, cylinderHeight / 2, minArrowRadius);
+
+if(clockPosition == CLOCK_REVERSE) {
+  minArrow.position.set(0, -cylinderHeight / 2, minArrowRadius);
+} else minArrow.position.set(0, cylinderHeight / 2, minArrowRadius);
+
 minArrow.applyMatrix4(minArrowMatrix);
 
 const hourArrowRadius = 0.012;
@@ -61,16 +80,22 @@ const hourArrowSphereGeo = new THREE.SphereGeometry(hourArrowRadius, 32, 16);
 const hourArrow = new THREE.Mesh(hourArrowSphereGeo, sphereMaterial);
 const hourArrowMatrix = new THREE.Matrix4();
 hourArrowMatrix.makeScale(20,1,100);
-hourArrow.position.set(0, cylinderHeight / 2, hourArrowRadius);
+
+if(clockPosition == CLOCK_REVERSE) {
+  hourArrow.position.set(0, -(cylinderHeight / 2), hourArrowRadius);
+} else hourArrow.position.set(0, cylinderHeight / 2, hourArrowRadius);
 hourArrow.applyMatrix4(hourArrowMatrix);
 
 const secondsArrowWidth = 0.04;
 const secondsArrowHeight = cylinderRadius -0.2;
 const secondsArrowLength = 0.1;
 const boxGeo = new THREE.BoxGeometry(secondsArrowWidth, secondsArrowLength, secondsArrowHeight);
-const boxMaterial = new THREE.MeshBasicMaterial({color: secondaryColor});
+const boxMaterial = new THREE.MeshBasicMaterial({color: '#000222'});
 const secondsArrow = new THREE.Mesh(boxGeo, boxMaterial);
-//secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
+
+if(clockPosition == CLOCK_REVERSE) {
+  secondsArrow.position.set(hourArrowRadius/2, -cylinderHeight / 2, secondsArrowHeight/2);
+} else secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
 clockBody.add(secondsArrow);
 
 const shearMatrix = new THREE.Matrix4();
@@ -78,9 +103,18 @@ shearMatrix.makeShear(0, 6, 0, 0, 6, 0);
 clockCenter.applyMatrix4(shearMatrix);
 
 clockBody.add(clockCenter);
-// clockBody.add(secondsArrow);
+clockBody.add(secondsArrow);
 clockBody.add(minArrow);
 clockBody.add(hourArrow);
+
+const clockParts = [clockCenter, secondsArrow, minArrow, hourArrow];
+return clockParts;
+}
+
+const frontClockParts = createClockBody(CLOCK_FRONT);
+let [frontClockCenter, frontSecondsArrow, frontMinArrow, frontHourArrow] = frontClockParts;
+const reverseClockParts = createClockBody(CLOCK_REVERSE);
+let [reverseClockCenter, reverseSecondsArrow, reverseMinArrow, reverseHourArrow] = reverseClockParts;
 
 /* Clock Frame */
 const outerRadius = 5.5; 
@@ -156,54 +190,107 @@ const buildClockTicks = () => {
   clockTick.rotation.y = smallAngle;
   clockTick.position.applyMatrix4(m);  
   clockBody.add(clockTick);
-  }
-  
+  }  
 } 
 
-/* Run the clock */
+buildClockTicks();
 
-const runClock = () => {
-  const date = new Date();
-  const secondsNow = date.getSeconds();
-  const minutesNow = date.getMinutes();
-  const hoursNow = date.getHours();
-  rotateArrow(secondsNow, minutesNow, hoursNow);
+/* Run the clock */
+const setArrowsDefault = (clockSide) => {
+  if (clockSide == CLOCK_FRONT) {
+    frontSecondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
+    frontMinArrow.position.set(0, cylinderHeight / 2, 1.6);
+    frontHourArrow.position.set(0, cylinderHeight / 2, 1.2);
+  } else 
+    reverseSecondsArrow.position.set(hourArrowRadius/2, -cylinderHeight / 2, secondsArrowHeight/2);
+    reverseMinArrow.position.set(0, -cylinderHeight / 2, 1.6);
+    reverseHourArrow.position.set(0, -cylinderHeight / 2, 1.2);
 }
 
-const rotateArrow = (secondsNow, minutesNow, hoursNow) => {
-  //set arrow to default position
-  secondsArrow.position.set(hourArrowRadius/2, cylinderHeight / 2, secondsArrowHeight/2);
-  minArrow.position.set(0, cylinderHeight / 2, 1.6);
-  hourArrow.position.set(0, cylinderHeight / 2, 1.2);
-  const secondsratio = secondsNow / 60;
+const rotateArrow = (secondsNow, minutesNow, hoursNow, clockSide) => {
+  setArrowsDefault(clockSide);
+  const secondsratio = secondsNow / 60; 
   
   //seconds
-  let secAngle = -secondsNow * 6 * (Math.PI / 180.0);
-  const secEu = new THREE.Euler(0, secAngle, 0);
-  const secMat = new THREE.Matrix4();
-  secMat.makeRotationFromEuler(secEu);
-  secondsArrow.position.applyMatrix4(secMat);
-  secondsArrow.rotation.y = secAngle;
+  if(clockSide == CLOCK_FRONT) {
+    let secAngle = -secondsNow * 6 * (Math.PI / 180.0);
+    const secEu = new THREE.Euler(0, secAngle, 0);
+    const secMat = new THREE.Matrix4();
+    secMat.makeRotationFromEuler(secEu);
+    frontSecondsArrow.position.applyMatrix4(secMat);
+    frontSecondsArrow.rotation.y = secAngle;
+  } else {
+    let secAngle = secondsNow * 6 * (Math.PI / 180.0);
+    const secEu = new THREE.Euler(0, secAngle, 0);
+    const secMat = new THREE.Matrix4();
+    secMat.makeRotationFromEuler(secEu);
+    reverseSecondsArrow.position.applyMatrix4(secMat);
+    reverseSecondsArrow.rotation.y = secAngle;
+  }
 
   //minutes
-  let minAngle = -(minutesNow + secondsratio) * 6 * (Math.PI / 180.0);
-  const minEu = new THREE.Euler(0, minAngle, 0);
-  const minMat = new THREE.Matrix4();
-  minMat.makeRotationFromEuler(minEu);
-  minArrow.position.applyMatrix4(minMat);
-  minArrow.rotation.y = minAngle;
-  
+  if(clockSide == CLOCK_FRONT) {
+    let minAngle = -(minutesNow + secondsratio) * 6 * (Math.PI / 180.0);
+    const minEu = new THREE.Euler(0, minAngle, 0);
+    const minMat = new THREE.Matrix4();
+    minMat.makeRotationFromEuler(minEu);
+    frontMinArrow.position.applyMatrix4(minMat);
+    frontMinArrow.rotation.y = minAngle;
+  } else {
+    let minAngle = (minutesNow + secondsratio) * 6 * (Math.PI / 180.0);
+    const minEu = new THREE.Euler(0, minAngle, 0);
+    const minMat = new THREE.Matrix4();
+    minMat.makeRotationFromEuler(minEu);
+    reverseMinArrow.position.applyMatrix4(minMat);
+    reverseMinArrow.rotation.y = minAngle;
+  }  
+
   //hours
-  let hourAngle = -(hoursNow + (secondsratio + minutesNow)/60) * 30 * (Math.PI / 180.0);
-  const hourEu = new THREE.Euler(0, hourAngle, 0);
-  const hourMat = new THREE.Matrix4();
-  hourMat.makeRotationFromEuler(hourEu);
-  hourArrow.position.applyMatrix4(hourMat);
-  hourArrow.rotation.y = hourAngle;
-  
+  if(clockSide == CLOCK_FRONT) {
+    let hourAngle = -(hoursNow + (secondsratio + minutesNow)/60) * 30 * (Math.PI / 180.0);
+    const hourEu = new THREE.Euler(0, hourAngle, 0);
+    const hourMat = new THREE.Matrix4();
+    hourMat.makeRotationFromEuler(hourEu);
+    frontHourArrow.position.applyMatrix4(hourMat);
+    frontHourArrow.rotation.y = hourAngle;
+  } else {
+    let hourAngle = (hoursNow + (secondsratio + minutesNow)/60) * 30 * (Math.PI / 180.0);
+    const hourEu = new THREE.Euler(0, hourAngle, 0);
+    const hourMat = new THREE.Matrix4();
+    hourMat.makeRotationFromEuler(hourEu);
+    reverseHourArrow.position.applyMatrix4(hourMat);
+    reverseHourArrow.rotation.y = hourAngle;
+  }
 }
 
-buildClockTicks();
+const runClock = () => {
+  //date Hamburg +1 Hour
+  const frontDate = setTimeZone(1);
+
+  const secondsFront = frontDate.getSeconds();
+  const minutesFront = frontDate.getMinutes();
+  const hoursFront = frontDate.getHours();
+
+  // Vladivostok, Primorsky Krai, Russia +10 Hours
+  const reverseDate = setTimeZone(10);
+
+  const secondsReverse = reverseDate.getSeconds();
+  const minutesReverse = reverseDate.getMinutes();
+  const hoursReverse = reverseDate.getHours();
+
+  rotateArrow(secondsFront, minutesFront, hoursFront, CLOCK_FRONT);
+  rotateArrow(secondsReverse, minutesReverse, hoursReverse, CLOCK_REVERSE);
+}
+
+const setTimeZone = (timeOffset) => {
+  const date = new Date();  
+
+  /* 60000 1000msec = 1 sec, 1 min = 60 sec => 60 * 1000 = 60000
+     1 hour = 3600 sec. => 3600 * 1000 = 3600000  */
+  let utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const clockDate = new Date(utc + (3600000 * timeOffset));
+  return clockDate;
+}
 
 // * Render loop
 const controls = new THREE.TrackballControls(camera, renderer.domElement);
@@ -228,9 +315,9 @@ render();
 // 3. create outline +
 // 4. create arrows +
 // 5. make arrow dynamic  +
-// 6. make a copy of the clock on the other side
-// 7. rework the arrows to scale not shear
+// 6. make a copy of the clock on the other side +
+// 7. rework the arrows to scale not shear +
 // 7. play with the styles
 // 8. Clean code
-// 9. Fix axis position
+// 9. Set correct time for the reverse side +
 // 10. Kill axes
