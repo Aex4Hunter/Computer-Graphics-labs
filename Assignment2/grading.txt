@@ -1,0 +1,5 @@
+Grading for assignment 2: 15
+
+Requirements: ok
+
+Coding Style: ok
