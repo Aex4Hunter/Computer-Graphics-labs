@@ -9,23 +9,26 @@ const colorLightBrown = '#933B14';
 const colorDarkBrown = '#180305';
 
 /* Sizes */
-const roomSize = 50;
+const roomSize = 150;
+const ceilingHeight = 20;
+const lampCordY = 7;
 
 const filedW = 4;
 const filedL = 8;
-const filedH = 0.5;
+const filedH = 0.1;
                                             
-const fieldFrameW = filedW + 0.1;
-const fieldFrameL = filedL + 0.2;
-const fieldFrameH = filedH;
+const fieldFrameW = filedW + 0.2;
+const fieldFrameL = filedL + 0.4;
+const fieldFrameH = 0.2;
 
+const tableHeight = 2.3;
 
 "use strict";
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
 const renderer = new THREE.WebGLRenderer({canvas,
                                           antialias: true});
-renderer.setClearColor(colorDarkBrown);    // set background color
+renderer.setClearColor(colorLight);    // set background color
 renderer.setSize(window.innerWidth, window.innerHeight);
 // Create a new Three.js scene with camera and light
 const scene = new THREE.Scene();
@@ -51,12 +54,50 @@ const ambLight = new THREE.PointLight();
 scene.add(ambLight);
 scene.add(new THREE.AmbientLight(0x606060));
 
-//change spotlight position to above the ceiling
-const spotLight = new THREE.SpotLight( 0xffffff );
-spotLight.position.set( 100, 1000, 100 );
-spotLight.castShadow = true;
-//work on adding shadows
-scene.add( spotLight );
+//light source
+const chordGeo = new THREE.BoxGeometry(0.1, 0.1, filedL);
+const chordMat = new THREE.MeshBasicMaterial( {color: 'grey'} );
+const lampChord = new THREE.Mesh( chordGeo, chordMat );
+lampChord.position.y = lampCordY;
+scene.add( lampChord );
+
+const wireGeo = new THREE.BoxGeometry(0.05, ceilingHeight - lampCordY, 0.05);
+const wireMat = new THREE.MeshBasicMaterial( {color: 'grey'} );
+const lampWire = new THREE.Mesh( wireGeo, wireMat );
+lampWire.position.y = ceilingHeight - lampCordY;
+scene.add(lampWire);
+
+function createLightSource (zPosition) {
+    const spotLight = new THREE.SpotLight( 0xffffff );
+
+    //work on adding shadows
+    scene.add( spotLight );
+
+    const wireGeo = new THREE.BoxGeometry(0.05, 1, 0.05);
+    const lampWire = new THREE.Mesh( wireGeo, wireMat );
+    lampWire.position.y = lampCordY - 0.5;
+    lampWire.position.z = zPosition;
+    scene.add( lampWire );
+    
+    const lampGeo = new THREE.CylinderGeometry( 0, 0.8, 1, 32, 6, true );
+    const lamMat = new THREE.MeshBasicMaterial( {color: colorBlueGreen} );
+    const lamp = new THREE.Mesh( lampGeo, lamMat );
+    lamp.position.y = -0.8;
+    lampWire.add( lamp );
+    
+    const bulbGeo = new THREE.SphereGeometry( 0.3, 32, 16 );
+    const bulbMat = new THREE.MeshBasicMaterial( { color: colorYellow } );
+    const bulb = new THREE.Mesh( bulbGeo, bulbMat );
+    bulb.position.y = lamp.position.y;
+    lampWire.add( bulb );
+    
+    spotLight.position.set(bulb.position.clone()) ;
+}
+
+createLightSource(0);
+createLightSource(filedL / 2 - 0.2);
+createLightSource(-filedL / 2 + 0.2);
+
 
 
 // Create room environment
@@ -74,15 +115,15 @@ const createPlane = (planeColor, position) => {
     return newPlane;
 }
 
-//const floor = createPlane(colorBlueGreen, -2);
-//const ceiling = createPlane(colorLight, 10);
+const floor = createPlane(colorBlueGreen, 0);
+const ceiling = createPlane(colorLight, ceilingHeight);
 
 // Create table 
 //playfield
 const boxGeo = new THREE.BoxGeometry(filedW, filedH, filedL);
 const boxMat = new THREE.MeshBasicMaterial( {color: colorGreen} );
 const playFiled = new THREE.Mesh( boxGeo, boxMat );
-playFiled.position.y = 2.4;
+playFiled.position.y = tableHeight - 0.3;
 scene.add( playFiled );
 
 //add table frame
@@ -106,27 +147,52 @@ innerFrame.lineTo(fieldFrameH, fieldFrameH);
 outerFrame.holes.push(innerFrame);
 
 const extrudeSettings = {
-bevelEnabled: false,
-depth: 1,
+	bevelEnabled: true,
+	bevelThickness: 0.05,
+	bevelSize: 0.1,
+	bevelOffset: 0.1,
+	bevelSegments: 10,
+    depth: 0.4,
 };
 const frameGeo = new THREE.ExtrudeGeometry(outerFrame, extrudeSettings);
 const buildFrame = new THREE.Mesh(frameGeo, frameMat);
 
 buildFrame.rotation.x = Math.PI / 2;
 buildFrame.rotation.z = Math.PI / 2;
-buildFrame.position.set(fieldFrameW / 2, 3, -fieldFrameL / 2);
+buildFrame.position.set(fieldFrameW / 2, tableHeight, -fieldFrameL / 2);
 scene.add(buildFrame);
 
 // Add table legs 
 function buildLegs() {
-  const boxGeo = new THREE.BoxGeometry(0.2, 3, 0.2);
-  const boxMat = new THREE.MeshBasicMaterial( {color: colorLightBrown} );
-  const tableLeg = new THREE.Mesh( boxGeo, boxMat );
-  scene.add( tableLeg );
+  w = 0.2;
+  l = 0.2;
+  h = 2;  
+  legPositionY = h / 2;
+
+  const boxGeo = new THREE.BoxGeometry(w, h, l);
+  const boxMat = new THREE.MeshBasicMaterial( {color: colorDarkBrown} );
+  const tableLegFL = new THREE.Mesh( boxGeo, boxMat );
+  const tableLegFR = new THREE.Mesh( boxGeo, boxMat );
+  const tableLegBL = new THREE.Mesh( boxGeo, boxMat );
+  const tableLegBR = new THREE.Mesh( boxGeo, boxMat );
+  const tableLegFM = new THREE.Mesh( boxGeo, boxMat );
+  const tableLegBM = new THREE.Mesh( boxGeo, boxMat );
+
+  tableLegFL.position.set(fieldFrameW / 2 - w/2, legPositionY, fieldFrameL / 2 -  l/2);
+  tableLegFR.position.set(fieldFrameW / 2 - w/2, legPositionY, -fieldFrameL / 2 + l/2);
+  tableLegBL.position.set(-fieldFrameW / 2 + w/2, legPositionY, fieldFrameL / 2 -  l/2);
+  tableLegBR.position.set(-fieldFrameW / 2 + w/2, legPositionY, -fieldFrameL / 2 + l/2);
+  tableLegFM.position.set(fieldFrameW / 2 - w/2, legPositionY, 0);
+  tableLegBM.position.set(-fieldFrameW / 2 + w/2, legPositionY, 0);
+  scene.add( tableLegFL );
+  scene.add( tableLegFR );
+  scene.add( tableLegBL );
+  scene.add( tableLegBR );
+  scene.add( tableLegFM );
+  scene.add( tableLegBM );
 }
 
 buildLegs();
-
 // * Add your billiard simulation here
 
 
@@ -146,9 +212,9 @@ render();
 
 /* Planning the app */
 /*
-1. Create room settings
-2. Create table 198 × 99 cm for playing field + 68 мм * 2 для луз
-3. Create Light above the table and the celing
+1. Create room settings +
+2. Create table 198 × 99 cm for playing field + 68 мм * 2 для луз +
+3. Create Light above the table and the celing +
 4. Add shadow casting
 5. Add shadow from the table on the floor
 6. Add 8 balls as wireframes size 68 мм
