@@ -39,7 +39,6 @@ window.addEventListener("resize", function() {
   camera.updateProjectionMatrix();
 });
 
-
 camera.position.set(10, 5, 8);
 camera.lookAt(scene.position);
 
