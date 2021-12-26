@@ -18,12 +18,15 @@ const filedW = 4;
 const filedL = 8;
 const filedH = 0.1;
                                             
-const fieldFrameW = filedW + 0.2;
-const fieldFrameL = filedL + 0.4;
+const fieldFrameW = filedW + 0.81;
+const fieldFrameL = filedL + 0.81;
 const fieldFrameH = 0.2;
 
 const tableHeight = 2.3;
 const yOffset = 5;
+
+// tight ball radius to table width
+const ballRadius = filedW / 100 * 3;
 
 "use strict";
 // * Initialize webGL
@@ -44,7 +47,7 @@ window.addEventListener("resize", function() {
   camera.updateProjectionMatrix();
 });
 
-camera.position.set(15, 3, 15);
+camera.position.set(13, 3, 13);
 camera.lookAt(scene.position);
 
 // remove this in the final version1
@@ -207,11 +210,8 @@ function buildLegs() {
 buildLegs();
 
 //add table shadow on the floor
-
 const planeNormal = new THREE.Vector3(0,1,0);
 const dist = floor.position.length(); 
-//plane to project on is the efloor
-//obj to cast shadow is the playing filed
 playFiled.updateMatrixWorld();
 
 const Qnd = new THREE.Matrix4().multiplyScalar(dist-0.001);
@@ -228,11 +228,29 @@ let shadowTable = new THREE.Mesh(shadowTableGeo,
   new THREE.MeshBasicMaterial({color: colorObjShadow}));
 scene.add(shadowTable);
 
+// Create balls
+function buildBalls(amount) {
+  const ballsArray = [];
+  //fieldFrameL - fieldFrameH*2 - gives length
+  //fieldFrameW - fieldFrameH*2 - gives width
+  const framePartL = fieldFrameH;
+  
+  for (let i = 0; i < amount; i++) {
+    const ballGeo = new THREE.SphereGeometry(ballRadius, 8, 4);
+    const ballMat = new THREE.MeshBasicMaterial( {color: 0x0000ff, wireframeLinewidth:1, wireframe:true} );
+    const ball = new THREE.Mesh( ballGeo, ballMat );
+    ball.position.y = ballRadius + filedH;
+    //Math.random() * (max - min) + min;
+    ball.position.x = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+    //ball.position.x = Math.random() * ((fieldFrameW - fieldFrameH*2)/2-ballRadius - (-(fieldFrameW - fieldFrameH*2)/2)+ballRadius) + ((-(fieldFrameW - fieldFrameH*2)/2)+ballRadius);
+    ball.position.z = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+    playFiled.add( ball );  
+    ballsArray.push(ball);
+  }
+  return ballsArray;
+}
 
-
-
-
-// * Add your billiard simulation here
+const ballSetArray = buildBalls(8);
 
 
 
@@ -254,8 +272,8 @@ render();
 1. Create room settings +
 2. Create table 198 × 99 cm for playing field + 68 мм * 2 для луз +
 3. Create Light above the table and the celing +
-4. Add shadow casting
-5. Add shadow from the table on the floor
+4. Add shadow casting 
+5. Add shadow from the table on the floor +
 6. Add 8 balls as wireframes size 68 мм
 7. Make balls roll
 8. Make balls roll random, add button to randomize
