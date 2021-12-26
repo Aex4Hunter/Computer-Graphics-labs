@@ -27,6 +27,8 @@ const yOffset = 5;
 
 // tight ball radius to table width
 const ballRadius = filedW / 100 * 3;
+let ballSpeed = [];
+let ballPos = [];
 
 "use strict";
 // * Initialize webGL
@@ -103,8 +105,6 @@ const spotLight = new THREE.SpotLight(0xffffff);
 //spotLight.position.set(lightbulb.position.clone());
 spotLight.position.set(lightbulb.position.clone());
 scene.add(spotLight);
-
-
 
 // Create room environment
 
@@ -192,7 +192,7 @@ function buildLegs() {
   tableLegBM.position.set(-fieldFrameW / 2 + w/2, legPositionY, 0);
   
   const boxShadowGeo = new THREE.BoxGeometry(0.23, 0.01, 0.22);
-  const boxShadowMat = new THREE.MeshBasicMaterial( {color: 'black'} );
+  const boxShadowMat = new THREE.MeshBasicMaterial( {color: colorObjShadow} );
   boxShadowMat.transparent = true;
   boxShadowMat.opacity = 0.8;
   const boxShadow = new THREE.Mesh( boxShadowGeo, boxShadowMat );
@@ -231,35 +231,55 @@ scene.add(shadowTable);
 // Create balls
 function buildBalls(amount) {
   const ballsArray = [];
+  let ball;
   //fieldFrameL - fieldFrameH*2 - gives length
   //fieldFrameW - fieldFrameH*2 - gives width
-  const framePartL = fieldFrameH;
   
   for (let i = 0; i < amount; i++) {
     const ballGeo = new THREE.SphereGeometry(ballRadius, 8, 4);
     const ballMat = new THREE.MeshBasicMaterial( {color: 0x0000ff, wireframeLinewidth:1, wireframe:true} );
-    const ball = new THREE.Mesh( ballGeo, ballMat );
-    ball.position.y = ballRadius + filedH;
-    //Math.random() * (max - min) + min;
-    ball.position.x = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-    //ball.position.x = Math.random() * ((fieldFrameW - fieldFrameH*2)/2-ballRadius - (-(fieldFrameW - fieldFrameH*2)/2)+ballRadius) + ((-(fieldFrameW - fieldFrameH*2)/2)+ballRadius);
-    ball.position.z = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
-    playFiled.add( ball );  
+    ball = new THREE.Mesh( ballGeo, ballMat );
+    // ball.position.y = ballRadius + filedH;
+    // ball.position.x = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+    // ball.position.z = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+    ballY = ballRadius + filedH;
+    ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+    ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+    
+
+    ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
+    ballPos.push(new THREE.Vector3(0, ballY, 0));
+    ball.matrixAutoUpdate = false;
+
+    playFiled.add(ball);  
     ballsArray.push(ball);
   }
   return ballsArray;
+  //return ball;
 }
 
 const ballSetArray = buildBalls(8);
 
-
-
 // * Render loop
+const computerClock = new THREE.Clock();
 const controls = new THREE.TrackballControls( camera, renderer.domElement );
 
 function render() {
   requestAnimationFrame(render);
 
+  const h = computerClock.getDelta();  
+  //const t = computerClock.getElapsedTime();
+  for (let i = 0; i < ballSetArray.length; i++) {
+    
+  ballPos[i].add(ballSpeed[i].clone().multiplyScalar(h));
+  const om = ballSpeed[i].length() / ballRadius;
+  const axis = planeNormal.clone().cross(ballSpeed[i]).normalize();
+
+  const dR = new THREE.Matrix4().makeRotationAxis(axis, om*h);
+  ballSetArray[i].matrix.premultiply(dR);
+  ballSetArray[i].matrix.setPosition(ballPos[i]);
+
+  }
 
   controls.update();
   renderer.render(scene, camera);
