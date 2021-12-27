@@ -1,5 +1,5 @@
 /* global THREE */
-
+const randomBtn = document.getElementById('randomize');
 /* Colors */
 const colorGreen = '#3ED126';
 const colorBlueGreen = '#3E9676';
@@ -39,7 +39,6 @@ renderer.setClearColor(colorLight);    // set background color
 renderer.setSize(window.innerWidth, window.innerHeight);
 // Create a new Three.js scene with camera and light
 const scene = new THREE.Scene();
-scene.add(new THREE.AxesHelper());
 const camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height,
                                             0.1, 1000 );
 
@@ -52,11 +51,7 @@ window.addEventListener("resize", function() {
 camera.position.set(13, 3, 13);
 camera.lookAt(scene.position);
 
-// remove this in the final version1
-scene.add(new THREE.AxesHelper());
-
 // Lightning
-
 const ambLight = new THREE.PointLight();
 scene.add(ambLight);
 scene.add(new THREE.AmbientLight(0x606060));
@@ -239,26 +234,39 @@ function buildBalls(amount) {
     const ballGeo = new THREE.SphereGeometry(ballRadius, 8, 4);
     const ballMat = new THREE.MeshBasicMaterial( {color: 0x0000ff, wireframeLinewidth:1, wireframe:true} );
     ball = new THREE.Mesh( ballGeo, ballMat );
-    // ball.position.y = ballRadius + filedH;
-    // ball.position.x = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-    // ball.position.z = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+
     ballY = ballRadius + filedH;
     ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
     ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
-    
 
     ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
-    ballPos.push(new THREE.Vector3(0, ballY, 0));
+    ballPos.push(new THREE.Vector3(ballX, ballY, ballZ));
     ball.matrixAutoUpdate = false;
 
     playFiled.add(ball);  
     ballsArray.push(ball);
   }
   return ballsArray;
-  //return ball;
 }
 
 const ballSetArray = buildBalls(8);
+// Event listeners
+randomBtn.addEventListener("click", function() {
+  ballSpeed = [];
+
+  for (let i = 0; i < ballSetArray.length; i++) {
+
+    // ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+    // ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+    ballX = Math.random() * ((2) - (-2)) + (-2);
+    ballZ = Math.random() * ((2) - (-2)) + (-2);
+
+    ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
+    console.log('hey!');
+  }
+
+}); 
+
 
 // * Render loop
 const computerClock = new THREE.Clock();
@@ -268,8 +276,22 @@ function render() {
   requestAnimationFrame(render);
 
   const h = computerClock.getDelta();  
-  //const t = computerClock.getElapsedTime();
+
   for (let i = 0; i < ballSetArray.length; i++) {
+
+  if(ballPos[i].x >= (filedW/2 - filedH)) {
+    ballSpeed[i].x = - Math.abs(ballSpeed[i].x - (ballSpeed[i].x * 0.2));
+  } 
+  if(ballPos[i].x <= (-filedW/2 + filedH)) {
+    ballSpeed[i].x = Math.abs(ballSpeed[i].x - (ballSpeed[i].x * 0.2));
+  }
+  if(ballPos[i].z >= (filedL/2 - filedH)) {
+    ballSpeed[i].z = - Math.abs(ballSpeed[i].z - (ballSpeed[i].z * 0.2));
+  }
+  if(ballPos[i].z <= (-filedL/2 + filedH)) {
+    ballSpeed[i].z = Math.abs(ballSpeed[i].z - (ballSpeed[i].z * 0.2));
+  }
+
     
   ballPos[i].add(ballSpeed[i].clone().multiplyScalar(h));
   const om = ballSpeed[i].length() / ballRadius;
@@ -278,6 +300,25 @@ function render() {
   const dR = new THREE.Matrix4().makeRotationAxis(axis, om*h);
   ballSetArray[i].matrix.premultiply(dR);
   ballSetArray[i].matrix.setPosition(ballPos[i]);
+
+  for(let j = i + 1; j < ballSetArray.length; j++) {
+    let inSpeedI = ballSpeed[i].clone();
+    let inSpeedJ = ballSpeed[j].clone();
+    let outSpeedI;
+    let outSpeedJ;
+    let vectorD;
+   if( ballPos[i].distanceTo(ballPos[j]) <= ballRadius*2 ) {
+     vectorD = ballPos[i].clone().sub(ballPos[j].clone());
+     
+     let semiResults = inSpeedI.clone().sub(inSpeedJ.clone()).multiply(vectorD.clone()).divideScalar( vectorD.clone().lengthSq()).multiply(vectorD.clone());
+    
+    outSpeedI = inSpeedI.clone().sub(semiResults.clone());
+    outSpeedJ = inSpeedJ.clone().add(semiResults.clone());
+
+    ballSpeed[i] = outSpeedI.clone().sub(outSpeedI.clone().multiplyScalar(0.3));
+    ballSpeed[j] = outSpeedJ.clone().sub(outSpeedJ.clone().multiplyScalar(0.3));
+   }
+  }
 
   }
 
@@ -294,13 +335,16 @@ render();
 3. Create Light above the table and the celing +
 4. Add shadow casting 
 5. Add shadow from the table on the floor +
-6. Add 8 balls as wireframes size 68 мм
-7. Make balls roll
-8. Make balls roll random, add button to randomize
-9. Add reflections off the table
-10. Add reflection off each other
+6. Add 8 balls as wireframes size 68 мм +
+7. Make balls roll +
+8. Make balls roll random +, add button to randomize
+9. Add reflections off the table +
+10. Add reflection off each other 
 11. Add texture images
-12. Make sure to use function to create the balls
+12. Make sure to use function to create the balls +
 13. Add holes to the table
-14. Delete the axes
+14. Add outcoming speed difference (less than incoming speed) +
+15. Delete the axes
+16. Make sure balls are not overlaping when originally generated
+17. Add shadows of the balls on the table
 */
