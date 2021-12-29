@@ -227,19 +227,31 @@ scene.add(shadowTable);
 function buildBalls(amount) {
   const ballsArray = [];
   let ball;
+  let ballY = ballRadius + filedH;
+
   //fieldFrameL - fieldFrameH*2 - gives length
   //fieldFrameW - fieldFrameH*2 - gives width
-  
+
   for (let i = 0; i < amount; i++) {
     const ballGeo = new THREE.SphereGeometry(ballRadius, 8, 4);
     const ballMat = new THREE.MeshBasicMaterial( {color: 0x0000ff, wireframeLinewidth:1, wireframe:true} );
     ball = new THREE.Mesh( ballGeo, ballMat );
 
-    ballY = ballRadius + filedH;
-    ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-    ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+    let ballSpeedX = Math.random() * ((3) - (-3)) + (-3);
+    let ballSpeedZ = Math.random() * ((3) - (-3)) + (-3);
+    
+    let ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+    let ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
 
-    ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
+    for(let j = 0; j < ballPos.length; j++) {
+      let currentBallPos = new THREE.Vector3(ballX, ballY, ballZ);
+      while(currentBallPos.distanceTo(ballPos[j]) <= ballRadius*2) {
+        ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
+        ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
+      }
+    }
+
+    ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
     ballPos.push(new THREE.Vector3(ballX, ballY, ballZ));
     ball.matrixAutoUpdate = false;
 
@@ -256,10 +268,8 @@ randomBtn.addEventListener("click", function() {
 
   for (let i = 0; i < ballSetArray.length; i++) {
 
-    // ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-    // ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
-    ballX = Math.random() * ((2) - (-2)) + (-2);
-    ballZ = Math.random() * ((2) - (-2)) + (-2);
+    let ballX = Math.random() * ((3) - (-3)) + (-3);
+    let ballZ = Math.random() * ((3) - (-3)) + (-3);
 
     ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
     console.log('hey!');
@@ -307,19 +317,24 @@ function render() {
     let outSpeedI;
     let outSpeedJ;
     let vectorD;
-   if( ballPos[i].distanceTo(ballPos[j]) <= ballRadius*2 ) {
-     vectorD = ballPos[i].clone().sub(ballPos[j].clone());
-     
-     let semiResults = inSpeedI.clone().sub(inSpeedJ.clone()).multiply(vectorD.clone()).divideScalar( vectorD.clone().lengthSq()).multiply(vectorD.clone());
-    
-    outSpeedI = inSpeedI.clone().sub(semiResults.clone());
-    outSpeedJ = inSpeedJ.clone().add(semiResults.clone());
+    let semiResults;
+    let dotProd;
+    let inSpeedDiff;
 
-    ballSpeed[i] = outSpeedI.clone().sub(outSpeedI.clone().multiplyScalar(0.3));
-    ballSpeed[j] = outSpeedJ.clone().sub(outSpeedJ.clone().multiplyScalar(0.3));
+   if(ballPos[i].distanceTo(ballPos[j]) <= ballRadius*2 ) {
+   vectorD = ballPos[j].clone().sub(ballPos[i].clone());
+   inSpeedDiff = inSpeedI.clone().sub(inSpeedJ.clone());
+   dotProd = vectorD.clone().dot(inSpeedDiff);
+   semiResults = dotProd / (vectorD.clone().lengthSq());
+   semiResults = vectorD.clone().multiplyScalar(semiResults);
+   
+   outSpeedI = inSpeedI.clone().sub(semiResults);
+   outSpeedJ = inSpeedJ.clone().add(semiResults);
+
+   ballSpeed[i] = outSpeedI.clone().sub((outSpeedI.clone().multiplyScalar(0.3)));
+   ballSpeed[j] = outSpeedJ.clone().sub((outSpeedJ.clone().multiplyScalar(0.3)));
    }
   }
-
   }
 
   controls.update();
@@ -337,14 +352,13 @@ render();
 5. Add shadow from the table on the floor +
 6. Add 8 balls as wireframes size 68 мм +
 7. Make balls roll +
-8. Make balls roll random +, add button to randomize
+8. Make balls roll random +, add button to randomize +
 9. Add reflections off the table +
-10. Add reflection off each other 
+10. Add reflection off each other +
 11. Add texture images
 12. Make sure to use function to create the balls +
-13. Add holes to the table
 14. Add outcoming speed difference (less than incoming speed) +
-15. Delete the axes
+15. Delete the axes +
 16. Make sure balls are not overlaping when originally generated
 17. Add shadows of the balls on the table
 */
