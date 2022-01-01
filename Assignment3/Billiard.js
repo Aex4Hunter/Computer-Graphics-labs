@@ -1,7 +1,8 @@
 /* global THREE */
 const randomBtn = document.getElementById('randomize');
+const toggleBtn = document.getElementById('material');
 /* Colors */
-const colorGreen = '#3ED126';
+const colorGreen = '#1E6613';
 const colorBlueGreen = '#3E9676';
 const colorYellow = '#FFF500';
 const colorLight = '#E4F0E4';
@@ -30,6 +31,12 @@ const ballRadius = filedW / 100 * 3;
 let ballSpeed = [];
 let ballPos = [];
 
+//materials & textures
+//let txMat;
+let matWireframe = false;
+const wireframeMat =new THREE.MeshStandardMaterial( {color: 0x0026ff, wireframeLinewidth:0.2, wireframe: true} );
+const loader = new THREE.TextureLoader();
+
 "use strict";
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
@@ -37,6 +44,8 @@ const renderer = new THREE.WebGLRenderer({canvas,
                                           antialias: true});
 renderer.setClearColor(colorLight);    // set background color
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Create a new Three.js scene with camera and light
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height,
@@ -56,7 +65,7 @@ const ambLight = new THREE.PointLight();
 scene.add(ambLight);
 scene.add(new THREE.AmbientLight(0x606060));
 
-//light source
+//spotlight source
 const chordGeo = new THREE.BoxGeometry(0.1, 0.1, filedL);
 const chordMat = new THREE.MeshBasicMaterial({color: 'grey'});
 const lampChord = new THREE.Mesh(chordGeo, chordMat);
@@ -78,7 +87,7 @@ function createLightSource (zPosition) {
     scene.add( lampWire );
     
     const lampGeo = new THREE.CylinderGeometry( 0, 0.8, 1, 32, 6, true );
-    const lamMat = new THREE.MeshBasicMaterial( {color: colorBlueGreen} );
+    const lamMat = new THREE.MeshStandardMaterial( {color: colorBlueGreen} );
     const lamp = new THREE.Mesh(lampGeo, lamMat);
     lamp.position.y = -0.8;
     lampWire.add(lamp);
@@ -86,9 +95,9 @@ function createLightSource (zPosition) {
     const bulbGeo = new THREE.SphereGeometry( 0.3, 32, 16 );
     const bulbMat = new THREE.MeshBasicMaterial( { color: colorYellow } );
     const bulb = new THREE.Mesh(bulbGeo, bulbMat);
-    bulb.position.y = lamp.position.y;
-    lampWire.add(bulb);
-
+  //  bulb.position.y = lamp.position.y;
+  bulb.position.y = 0.5;
+    scene.add(bulb);
     return bulb;
 }
 
@@ -97,8 +106,9 @@ createLightSource(-filedL / 2 + 0.2);
 
 const lightbulb = createLightSource(0);
 const spotLight = new THREE.SpotLight(0xffffff);
-//spotLight.position.set(lightbulb.position.clone());
-spotLight.position.set(lightbulb.position.clone());
+spotLight.castShadow = true;
+spotLight.position.y = lightbulb.position.y;
+
 scene.add(spotLight);
 
 // Create room environment
@@ -117,13 +127,14 @@ const createPlane = (planeColor, position) => {
 }
 
 const floor = createPlane(colorBlueGreen, -yOffset);
+floor.receiveShadow = true;
 const ceiling = createPlane(colorLight, ceilingHeight -yOffset);
 
 // Create table 
-//playfield
 const boxGeo = new THREE.BoxGeometry(filedW, filedH, filedL);
-const boxMat = new THREE.MeshBasicMaterial( {color: colorGreen} );
+const boxMat = new THREE.MeshStandardMaterial( {color: colorGreen} );
 const playFiled = new THREE.Mesh( boxGeo, boxMat );
+playFiled.receiveShadow = true;
 playFiled.position.y = tableHeight - 0.3 -yOffset;
 scene.add( playFiled );
 
@@ -171,7 +182,7 @@ function buildLegs() {
   legPositionY = h / 2 - yOffset;
 
   const boxGeo = new THREE.BoxGeometry(w, h, l);
-  const boxMat = new THREE.MeshBasicMaterial( {color: colorDarkBrown} );
+  const boxMat = new THREE.MeshStandardMaterial( {color: colorDarkBrown} );
   const tableLegFL = new THREE.Mesh( boxGeo, boxMat );
   const tableLegFR = new THREE.Mesh( boxGeo, boxMat );
   const tableLegBL = new THREE.Mesh( boxGeo, boxMat );
@@ -204,6 +215,47 @@ function buildLegs() {
 
 buildLegs();
 
+
+// Create balls
+function buildBalls(amount) {
+  const ballGeo = new THREE.SphereGeometry(ballRadius, 16, 8);  
+  const ballsArray = [];
+  let ball;
+  let ballY = - ballRadius - yOffset + tableHeight;
+
+  //fieldFrameL - fieldFrameH*2 - gives length
+  //fieldFrameW - fieldFrameH*2 - gives width
+  for (let i = 0; i < amount; i++) {
+    const txt = loader.load(`./PoolBallSkins/Ball${8+i}.jpg`);
+    const txMat = new THREE.MeshPhongMaterial({color: 0xffffff, map:txt});
+    
+    ball = new THREE.Mesh( ballGeo, txMat );
+    ball.castShadow = true;
+
+    let ballSpeedX = Math.random() * ((3) - (-3)) + (-3);
+    let ballSpeedZ = Math.random() * ((3) - (-3)) + (-3);
+    //filedW/2 - filedH
+    let ballPositionX = Math.random() * (((filedW/2 - filedH) - ballRadius) - (-(filedW/2 - filedH) + ballRadius)) + (-(filedW/2 - filedH) + ballRadius);
+    let ballPositionZ = Math.random() * (((filedL/2 - filedH)- ballRadius) - (-(filedL/2 - filedH) + ballRadius)) + (-(filedL/2 - filedH) + ballRadius);
+
+    for(let j = 0; j < ballPos.length; j++) {
+      let currentBallPos = new THREE.Vector3(ballPositionX, ballY, ballPositionZ);
+      while(currentBallPos.distanceTo(ballPos[j]) <= ballRadius*2) {
+        ballPositionX = Math.random() * (((filedL/2 - filedH) - ballRadius) - (-(filedL/2 - filedH) + ballRadius)) + (-(filedL/2 - filedH) + ballRadius);
+        ballPositionZ = Math.random() * (((filedL/2 - filedH)- ballRadius) - (-(filedL/2 - filedH) + ballRadius)) + (-(filedL/2 - filedH) + ballRadius);
+      }
+    }
+
+    ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
+    ballPos.push(new THREE.Vector3(ballPositionX, ballY, ballPositionZ));
+    ball.matrixAutoUpdate = false;
+  
+    scene.add(ball);  
+    ballsArray.push(ball);
+  }
+  return ballsArray;
+}
+
 //add table shadow on the floor
 const planeNormal = new THREE.Vector3(0,1,0);
 const dist = floor.position.length(); 
@@ -223,60 +275,49 @@ let shadowTable = new THREE.Mesh(shadowTableGeo,
   new THREE.MeshBasicMaterial({color: colorObjShadow}));
 scene.add(shadowTable);
 
-// Create balls
-function buildBalls(amount) {
-  const ballsArray = [];
-  let ball;
-  let ballY = ballRadius + filedH;
-
-  //fieldFrameL - fieldFrameH*2 - gives length
-  //fieldFrameW - fieldFrameH*2 - gives width
-
-  for (let i = 0; i < amount; i++) {
-    const ballGeo = new THREE.SphereGeometry(ballRadius, 8, 4);
-    const ballMat = new THREE.MeshBasicMaterial( {color: 0x0000ff, wireframeLinewidth:1, wireframe:true} );
-    ball = new THREE.Mesh( ballGeo, ballMat );
-
-    let ballSpeedX = Math.random() * ((3) - (-3)) + (-3);
-    let ballSpeedZ = Math.random() * ((3) - (-3)) + (-3);
-    
-    let ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-    let ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
-
-    for(let j = 0; j < ballPos.length; j++) {
-      let currentBallPos = new THREE.Vector3(ballX, ballY, ballZ);
-      while(currentBallPos.distanceTo(ballPos[j]) <= ballRadius*2) {
-        ballX = Math.random() * ((filedW/2 - ballRadius) - (-filedW/2 + ballRadius)) + (-filedW/2 + ballRadius);
-        ballZ = Math.random() * ((filedL/2- ballRadius) - (-filedL/2 + ballRadius)) + (-filedL/2 + ballRadius);
-      }
-    }
-
-    ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
-    ballPos.push(new THREE.Vector3(ballX, ballY, ballZ));
-    ball.matrixAutoUpdate = false;
-
-    playFiled.add(ball);  
-    ballsArray.push(ball);
-  }
-  return ballsArray;
-}
-
 const ballSetArray = buildBalls(8);
+
 // Event listeners
 randomBtn.addEventListener("click", function() {
   ballSpeed = [];
+  let ballSpeedX;
+  let ballSpeedZ;
 
   for (let i = 0; i < ballSetArray.length; i++) {
 
-    let ballX = Math.random() * ((3) - (-3)) + (-3);
-    let ballZ = Math.random() * ((3) - (-3)) + (-3);
+    for(let j = i+1; j < ballSetArray.length; j++) {
 
-    ballSpeed.push(new THREE.Vector3(ballX, 0, ballZ));
-    console.log('hey!');
+      if(ballPos[i].distanceTo(ballPos[j]) <= ballRadius*2) {
+        let vectorD = ballPos[j].clone().sub(ballPos[i].clone());
+        ballSpeedX = -vectorD.getComponent(0);
+        ballSpeedZ = -vectorD.getComponent(2);      
+        break;
+      }
+      else {
+        ballSpeedX = Math.random() * ((3) - (-3)) + (-3);
+        ballSpeedZ = Math.random() * ((3) - (-3)) + (-3);
+        break;
+      } 
+    }
+    ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
   }
+});
 
-}); 
-
+toggleBtn.addEventListener("click", function(){
+  if(matWireframe) {
+    for(let i = 0; i < ballSetArray.length; i++) {
+      ballSetArray[i].material = wireframeMat;
+    }
+  } else {
+    for(let i = 0; i < ballSetArray.length; i++) {
+      const txt = loader.load(`./PoolBallSkins/Ball${8+i}.jpg`);
+      const txMat = new THREE.MeshPhongMaterial({color: 0xffffff, map:txt});
+      ballSetArray[i].material = txMat;
+    }
+  }
+  
+  matWireframe = !matWireframe;
+});
 
 // * Render loop
 const computerClock = new THREE.Clock();
