@@ -316,13 +316,14 @@ randomBtn.addEventListener("click", function () {
 
   for (let i = 0; i < ballSetArray.length; i++) {
     for (let j = i + 1; j < ballSetArray.length; j++) {
-      if (ballPos[i].distanceTo(ballPos[j]) <= ballRadius * 2) {
-        let vectorD = ballPos[j].clone().sub(ballPos[i].clone());
-        ballSpeedX = Math.random() * vectorD.getComponent(0);
-        ballSpeedZ = Math.random() * vectorD.getComponent(2);
+      if (ballPos[i].distanceTo(ballPos[j]) <= ballRadius * 2) {        
+        ballPos[i].x = ballPos[j].x + ballRadius * 2;
+        ballPos[i].z = ballPos[j].z + ballRadius * 2;
+        ballSpeedX = Math.random();
+        ballSpeedZ = Math.random();
       } else {
-        ballSpeedX = Math.random() * (3 - -3) + -3;
-        ballSpeedZ = Math.random() * (3 - -3) + -3;
+        ballSpeedX = Math.random() * (3 + 3) -3;
+        ballSpeedZ = Math.random() * (3 + 3) -3;
       }
       ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
     }
