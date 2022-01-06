@@ -73,7 +73,7 @@ const ambLight = new THREE.PointLight();
 scene.add(ambLight);
 scene.add(new THREE.AmbientLight(0x606060));
 
-// Lamp geo and Spotlight source 
+// Lamp geo and Spotlight source
 const chordGeo = new THREE.BoxGeometry(0.1, 0.1, filedL);
 const chordMat = new THREE.MeshBasicMaterial({ color: "grey" });
 const lampChord = new THREE.Mesh(chordGeo, chordMat);
@@ -153,7 +153,7 @@ const frameMat = new THREE.MeshStandardMaterial({
   color: colorLightBrown,
   metalness: 0.1,
   roughness: 0.8,
-  flatShading: true, 
+  flatShading: true,
   side: THREE.DoubleSide,
 });
 
@@ -306,31 +306,26 @@ let shadowTable = new THREE.Mesh(
 );
 scene.add(shadowTable);
 
-const ballSetArray = buildBalls(8);
+let ballSetArray = buildBalls(8);
 
 /* Event listeners */
 randomBtn.addEventListener("click", function () {
   ballSpeed = [];
-  let ballSpeedX;
-  let ballSpeedZ;
+  ballPos = [];
 
   for (let i = 0; i < ballSetArray.length; i++) {
-    for (let j = i + 1; j < ballSetArray.length; j++) {
-      if (ballPos[i].distanceTo(ballPos[j]) <= ballRadius * 2) {        
-        ballPos[i].x = ballPos[j].x + ballRadius * 2;
-        ballPos[i].z = ballPos[j].z + ballRadius * 2;
-        ballSpeedX = Math.random();
-        ballSpeedZ = Math.random();
-      } else {
-        ballSpeedX = Math.random() * (3 + 3) -3;
-        ballSpeedZ = Math.random() * (3 + 3) -3;
-      }
-      ballSpeed.push(new THREE.Vector3(ballSpeedX, 0, ballSpeedZ));
-    }
+    scene.remove(ballSetArray[i]);
   }
+
+  ballSetArray = buildBalls(8);
+  matWireframe = true;
 });
 
-toggleBtn.addEventListener("click", function () {
+toggleBtn.addEventListener("click", function toggleMaterial() {
+  matWireframe
+    ? (toggleBtn.innerHTML = "Skin material")
+    : (toggleBtn.innerHTML = "Wireframe");
+
   if (matWireframe) {
     for (let i = 0; i < ballSetArray.length; i++) {
       ballSetArray[i].material = wireframeMat;
@@ -340,7 +335,6 @@ toggleBtn.addEventListener("click", function () {
       ballSetArray[i].material = txtMatArr[i];
     }
   }
-
   matWireframe = !matWireframe;
 });
 
@@ -385,8 +379,12 @@ function render() {
       let dotProd;
       let inSpeedDiff;
 
+      let vD2norm;
+
       if (ballPos[i].distanceTo(ballPos[j]) <= ballRadius * 2) {
         vectorD = ballPos[j].clone().sub(ballPos[i].clone());
+        vD2norm = vectorD.clone().normalize();
+
         inSpeedDiff = inSpeedI.clone().sub(inSpeedJ.clone());
         dotProd = vectorD.clone().dot(inSpeedDiff);
         semiResults = dotProd / vectorD.clone().lengthSq();
@@ -401,6 +399,10 @@ function render() {
         ballSpeed[j] = outSpeedJ
           .clone()
           .sub(outSpeedJ.clone().multiplyScalar(0.3));
+
+        ballPos[j] = ballPos[i]
+          .clone()
+          .add(vD2norm.multiplyScalar(ballRadius * 2));
       }
     }
   }
