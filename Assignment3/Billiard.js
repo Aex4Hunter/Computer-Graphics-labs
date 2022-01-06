@@ -311,14 +311,9 @@ let ballSetArray = buildBalls(8);
 /* Event listeners */
 randomBtn.addEventListener("click", function () {
   ballSpeed = [];
-  ballPos = [];
-
-  for (let i = 0; i < ballSetArray.length; i++) {
-    scene.remove(ballSetArray[i]);
+    for (let i = 0; i < ballSetArray.length; i++) {
+      ballSpeed.push(new THREE.Vector3(Math.random() * (3 - -3) + -3, 0, Math.random() * (3 - -3) + -3));
   }
-
-  ballSetArray = buildBalls(8);
-  matWireframe = true;
 });
 
 toggleBtn.addEventListener("click", function toggleMaterial() {
