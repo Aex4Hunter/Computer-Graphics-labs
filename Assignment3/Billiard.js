@@ -31,6 +31,7 @@ const yOffset = 5;
 const ballRadius = (filedW / 100) * 3;
 let ballSpeed = [];
 let ballPos = [];
+const maxSpeed = 3;
 
 /* materials & textures */
 let matWireframe = true;
@@ -257,8 +258,8 @@ function buildBalls(amount) {
 
     ball = new THREE.Mesh(ballGeo, txMat);
     ball.castShadow = true;
-    let ballSpeedX = Math.random() * (3 - -3) + -3;
-    let ballSpeedZ = Math.random() * (3 - -3) + -3;
+    let ballSpeedX = Math.random() * (maxSpeed - -maxSpeed) + -maxSpeed;
+    let ballSpeedZ = Math.random() * (maxSpeed - -maxSpeed) + -maxSpeed;
 
     let ballPositionX = Math.random() * (maxW - minW) + minW;
     let ballPositionZ = Math.random() * (maxL - minL) + minL;
@@ -312,7 +313,7 @@ let ballSetArray = buildBalls(8);
 randomBtn.addEventListener("click", function () {
   ballSpeed = [];
     for (let i = 0; i < ballSetArray.length; i++) {
-      ballSpeed.push(new THREE.Vector3(Math.random() * (3 - -3) + -3, 0, Math.random() * (3 - -3) + -3));
+      ballSpeed.push(new THREE.Vector3(Math.random() * (maxSpeed - -maxSpeed) + -maxSpeed, 0, Math.random() * (maxSpeed - -maxSpeed) + -maxSpeed));
   }
 });
 
