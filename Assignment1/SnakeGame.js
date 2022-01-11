@@ -1,5 +1,4 @@
 /* global THREE */
-
 const planeSize = 10;
 const gridSize = 10;
 const gridDivisions = 10;
@@ -186,7 +185,7 @@ function generateBall() {
   let y = generateRandomLocation();
 
   for (let i = 1; i < snakeParts.length; i++) {
-    while (snakeParts[i].position.x == x && snakeParts[i].position.y == y) {
+    while (snakeParts[i].position.x == x + positionStep && snakeParts[i].position.y == y + positionStep) {
       x = generateRandomLocation();
       y = generateRandomLocation();
     }
@@ -206,14 +205,14 @@ function pickupBall() {
     dequeue.getFront().position.y == ball.position.y
   ) {
     generateSnakePart();
-
+  
     let x = generateRandomLocation();
     let y = generateRandomLocation();
     let sParts = dequeue.getValues();
-
-    for (let i = 0; i < sParts.length - 1; i++) {
+    for (let i = 0; i < sParts.length; i++) {
+      
       if (sParts[i] !== null) {
-        while (sParts[i].position.x == x && sParts[i].position.y == y) {
+        while (sParts[i].position.x == x + positionStep && sParts[i].position.y == y + positionStep) {
           x = generateRandomLocation();
           y = generateRandomLocation();
         }
@@ -270,7 +269,7 @@ const detectGOver = () => {
 };
 
 function restartGame() {
-  let counter = dequeue.size();
+  let score = dequeue.size() - 1;
   let snake = dequeue.getValues();
 
   if (detectGOver()) {
@@ -282,9 +281,9 @@ function restartGame() {
     pressedKeyCode = 0;
     camera.position.set(7, -7, 18);
     setTimeout(function () {
-      alert("Game over! You score is " + counter);
+      alert("Game over! You score is " + score);
     }, 200);
-    generateSnakePart();
+    const snakeHead = generateSnakePart();
   }
 }
 
@@ -316,7 +315,6 @@ function render() {
 render();
 
 // * Deque: https://learnersbucket.com/tutorials/data-structures/implement-deque-data-structure-in-javascript/
-
 function Deque() {
   //To track the elements from back
   let count = 0;
