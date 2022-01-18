@@ -1,0 +1,13 @@
+Grading for assignment 3: 14
+
+Requirements: -1
+  * cushions don't receive shadows
+  * No rolling friction (req. 2(b))
+
+Coding Style: -1
+   * 1 unused variable
+   * 4 undefined variables (w,l,h,legPositionY)
+   * magic number (friction constants)
+
+Remarks:
+   * Nice setup: +1
