@@ -1,10 +1,12 @@
 /* global THREE */
-const planeSize = 10;
-const gridSize = 10;
-const gridDivisions = 10;
+const planeSize = 12;
+const gridSize = 12;
+const gridDivisions = 12;
 const positionStep = 0.5;
 const GAME_OVER_SOUND = "GameOver";
 const PICKUP_BALL_SOUND = "pickup";
+
+/* Materials */
 
 let dequeue = new Deque();
 let pressedKeyCode;
@@ -23,7 +25,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-camera.position.set(7, -7, 18);
+camera.position.set(0, -16, 14);
 scene.add(camera);
 
 camera.lookAt(scene.position);
@@ -32,6 +34,16 @@ camera.lookAt(scene.position);
 const angularVelocity = Math.PI;
 const radiusCamera = 7;
 const distanceFromSphere = 0.6;
+
+/* Lightning */
+const ambLight = new THREE.PointLight();
+scene.add(ambLight);
+scene.add(new THREE.AmbientLight(0x606060));
+
+const spotLight = new THREE.SpotLight(0xffffff);
+spotLight.castShadow = true;
+spotLight.position.z = 10;
+scene.add(spotLight);
 
 //helping functions
 document.addEventListener("keydown", snakeHandler);
@@ -127,6 +139,22 @@ const gridHelper = new THREE.GridHelper(
 gridHelper.rotation.x = Math.PI / 2;
 scene.add(gridHelper);
 
+// Game box
+// let points = [];
+// points.push(new THREE.Vector2(3,3));
+// points.push(new THREE.Vector2(2,3));
+// points.push(new THREE.Vector2(2,2));
+// points.push(new THREE.Vector2(3,2));
+// points.push(new THREE.Vector2(3,3));
+
+// const gameboxGeo = new THREE.LatheGeometry(points, 4, Math.PI/4);
+// const gameboxMat = new THREE.MeshStandardMaterial( { color: 0xffff00 } );
+// gameboxMat.side = THREE.DoubleSide;
+// const gamebox = new THREE.Mesh( gameboxGeo, gameboxMat );
+// gamebox.rotation.x = Math.PI/2;
+// scene.add(gamebox);
+
+
 //Snake visuals
 function generateSnakePart() {
   const snakeBuildBlock = 0.95;
@@ -185,7 +213,10 @@ function generateBall() {
   let y = generateRandomLocation();
 
   for (let i = 1; i < snakeParts.length; i++) {
-    while (snakeParts[i].position.x == x + positionStep && snakeParts[i].position.y == y + positionStep) {
+    while (
+      snakeParts[i].position.x == x + positionStep &&
+      snakeParts[i].position.y == y + positionStep
+    ) {
       x = generateRandomLocation();
       y = generateRandomLocation();
     }
@@ -205,14 +236,16 @@ function pickupBall() {
     dequeue.getFront().position.y == ball.position.y
   ) {
     generateSnakePart();
-  
+
     let x = generateRandomLocation();
     let y = generateRandomLocation();
     let sParts = dequeue.getValues();
     for (let i = 0; i < sParts.length; i++) {
-      
       if (sParts[i] !== null) {
-        while (sParts[i].position.x == x + positionStep && sParts[i].position.y == y + positionStep) {
+        while (
+          sParts[i].position.x == x + positionStep &&
+          sParts[i].position.y == y + positionStep
+        ) {
           x = generateRandomLocation();
           y = generateRandomLocation();
         }
@@ -283,7 +316,7 @@ function restartGame() {
     setTimeout(function () {
       alert("Game over! You score is " + score);
     }, 200);
-    const snakeHead = generateSnakePart();
+    generateSnakePart();
   }
 }
 
@@ -302,6 +335,7 @@ function render() {
   pickupBall();
   restartGame();
 
+  //camera rotation
   const cameraPosition = new THREE.Vector3(
     -Math.sin(angularVelocity * t),
     Math.cos(angularVelocity * t),
@@ -313,6 +347,28 @@ function render() {
   controls.update();
 }
 render();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // * Deque: https://learnersbucket.com/tutorials/data-structures/implement-deque-data-structure-in-javascript/
 function Deque() {
