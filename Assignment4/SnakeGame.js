@@ -434,7 +434,7 @@ function restartGame() {
     setTimeout(function () {
       alert("Game over! You score is " + score);
     }, 200);
-    const snakeHead = generateSnakePart();
+    generateSnakePart();
   }
 }
 
