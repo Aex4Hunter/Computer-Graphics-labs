@@ -1,10 +1,10 @@
 /* global THREE */
-// Playground sizes 
-const scenePlaneSize = 200;
+// Playground sizes
+const scenePlaneSize = 100;
 const planeSize = 12;
-const gridSize = 12;
 const gridDivisions = 12;
 const positionStep = 0.5;
+const checkboardTxtCell = (planeSize / gridDivisions) * 2;
 
 const boardW = 0.1;
 const boardH = 4;
@@ -20,6 +20,10 @@ const displayPlaneLW = boardL - boardL * boardPartL;
 const displayPlaneLH = boardH;
 const displayPlaneSW = boardL - boardL * boardPartS;
 const displayPlaneSH = boardH / 2;
+const counterH = 0.01;
+const fontSize = 1;
+const centerDigitsX = -fontSize + fontSize * 0.25;
+const centerDigitX = -fontSize / 2 + fontSize * 0.25;
 
 const GAME_OVER_SOUND = "GameOver";
 const PICKUP_BALL_SOUND = "pickup";
@@ -29,21 +33,20 @@ const RIGHT = "Right";
 const BTM = "Bottom";
 
 // Colors
-const wallColor = "#00ff00";
-const playfieldColor = "#001524";
-const gridColor = "#004472";
-const colorHead = "#06d6a0";
-const colorTail = "#118ab2";
-const ballColor = "#ff2a42";
+const wallColor = "#f2d675";
+const playfieldColor = "#edfaef";
+const colorHead = "#FF5200";
+const colorTail = "#49FF00";
 const scenePlaneColor = "#fbfafb";
-const boardColor = "#222222"
+const boardColor = "#222222";
 const primaryColor = "#000002";
-const secondaryColor = "#49FF00";
 const aggressiveGreen = "#49FF00";
 const aggressiveRed = "#FF5200";
 
-const lightsourcePositionZ = 16;
-const lightsourcePositionY = 42;
+// Light positioning
+const lightsourcePositionX = 10;
+const lightsourcePositionY = 10;
+const lightsourcePositionZ = 10;
 
 // Snake
 let dequeue = new Deque();
@@ -58,37 +61,66 @@ const appleRad = appleScaler * 40;
 
 // * Initialize webGL
 const canvas = document.getElementById("myCanvas");
-const renderer = new THREE.WebGLRenderer({canvas,
-                                          antialias: true});
-renderer.setClearColor('white');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setClearColor("white");
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0,-18, 12);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, -16, 18);
 scene.add(camera);
-
 camera.lookAt(scene.position);
-// remove in final version:
-scene.add(new THREE.AxesHelper(2.5));
 
-/* Lightning */
+/* Lighting */
 const ambLight = new THREE.PointLight();
 scene.add(ambLight);
 scene.add(new THREE.AmbientLight(0x606060));
 
 const spotLight = new THREE.SpotLight(0xffffff);
 spotLight.castShadow = true;
-// spotLight.position.z = lightsourcePositionZ;
-// spotLight.position.y = lightsourcePositionY;
-spotLight.position.set(10,10,10);
+spotLight.position.set(
+  lightsourcePositionX,
+  lightsourcePositionY,
+  lightsourcePositionZ
+);
 scene.add(spotLight);
 
-window.addEventListener("resize", function() {
+/* Sky Box */
+const skySize = scenePlaneSize * 2;
+const txtLoader = new THREE.TextureLoader();
+const textures = [
+  // right - left - top - bottom - back - front
+  "./resources/skybox/px.jpg",
+  "./resources/skybox/nx.jpg",
+  "./resources/skybox/py.jpg",
+  "./resources/skybox/ny.jpg",
+  "./resources/skybox/pz.jpg",
+  "./resources/skybox/nz.jpg",
+];
+
+let skyMaterials = [];
+textures.forEach((txtImg) => {
+  const txt = txtLoader.load(txtImg);
+  skyMaterials.push(
+    new THREE.MeshBasicMaterial({ map: txt, side: THREE.DoubleSide })
+  );
+});
+
+let skyGeo = new THREE.BoxGeometry(skySize, skySize, skySize);
+let skyBox = new THREE.Mesh(skyGeo, skyMaterials);
+skyBox.rotation.x = Math.PI / 2;
+scene.add(skyBox);
+
+window.addEventListener("resize", function () {
   renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 });
 
@@ -112,24 +144,27 @@ function moveSnake(key) {
       defauldCamRotation(LEFT);
       head.position.x -= 1;
       break;
-    case 38:      
+    case 38:
       defauldCamRotation(TOP);
-      head.position.y += 1;      
+      head.position.y += 1;
       break;
     case 39:
       defauldCamRotation(RIGHT);
-      head.position.x += 1;   
+      head.position.x += 1;
       break;
     case 40:
       defauldCamRotation(BTM);
-      head.position.y -= 1;        
+      head.position.y -= 1;
       break;
   }
   dequeue.insertFront(head);
 }
 
 function snakeHandler(event) {
+  event.preventDefault();
+
   pressedKeyCode = event.keyCode;
+
   if (event.keyCode == 37) {
     moveSnake(event.keyCode);
     const mLeft = setInterval(function () {
@@ -170,28 +205,31 @@ const generateRandomLocation = () =>
       -gridDivisions / 2
   );
 
-/*Visual content of the game starts*/
 //Plane & Grid
+const playgndTexture = txtLoader.load(
+  "./resources/FloorsCheckerboard_S_Diffuse.jpg"
+);
+const playgndNormMap = txtLoader.load(
+  "./resources/FloorsCheckerboard_S_Normal.jpg"
+);
+playgndNormMap.wrapS = THREE.RepeatWrapping;
+playgndNormMap.wrapT = THREE.RepeatWrapping;
+playgndTexture.wrapS = THREE.RepeatWrapping;
+playgndTexture.wrapT = THREE.RepeatWrapping;
+playgndTexture.repeat.set(checkboardTxtCell, checkboardTxtCell);
 const plane = new THREE.PlaneGeometry(planeSize, planeSize);
 const material = new THREE.MeshStandardMaterial({
   color: playfieldColor,
   side: THREE.DoubleSide,
   transparent: true,
-  opacity: 0.9,
+  opacity: 0.7,
+  map: playgndTexture,
+  normalMap: playgndNormMap,
 });
+
 const gameField = new THREE.Mesh(plane, material);
 gameField.receiveShadow = true;
-
 scene.add(gameField);
-
-const gridHelper = new THREE.GridHelper(
-  gridSize,
-  gridDivisions,
-  gridColor,
-  gridColor
-);
-gridHelper.rotation.x = Math.PI / 2;
-scene.add(gridHelper);
 
 const scenePlane = new THREE.PlaneGeometry(scenePlaneSize, scenePlaneSize);
 const scenePlaneMat = new THREE.MeshStandardMaterial({
@@ -202,34 +240,68 @@ scenePlayground.receiveShadow = true;
 scenePlayground.position.z = -0.001;
 scene.add(scenePlayground);
 
-const wallL = planeSize + positionStep*2;
-const wallW = positionStep*2;
-const wallH = positionStep*2;
-//Room
-const wallGeo = new THREE.BoxGeometry(wallW, planeSize + positionStep*2, wallH);
-const wallMat = new THREE.MeshStandardMaterial({color: wallColor});
+const wallL = planeSize + positionStep * 2;
+const wallW = positionStep * 2;
+const wallH = positionStep * 2;
+
+const wallTxt = txtLoader.load("resources/hardwood2_diffuse.jpg");
+const wallBMap = txtLoader.load("resources/hardwood2_bump.jpg");
+wallTxt.wrapS = THREE.RepeatWrapping;
+wallTxt.wrapT = THREE.RepeatWrapping;
+wallBMap.wrapS = THREE.RepeatWrapping;
+wallBMap.wrapT = THREE.RepeatWrapping;
+wallTxt.repeat.set(3, 3);
+wallBMap.repeat.set(3, 3);
+
+const wallGeo = new THREE.BoxGeometry(
+  wallW,
+  planeSize + positionStep * 2,
+  wallH
+);
+const wallMat = new THREE.MeshStandardMaterial({
+  color: wallColor,
+  map: wallTxt,
+  bumpMap: wallBMap,
+  bumpScale: 0.1,
+});
 
 function buidWalls(side) {
   const wall = new THREE.Mesh(wallGeo, wallMat);
   wall.castShadow = true;
-  wall.receiveShadow = true;  
-  switch(side) {
+  wall.receiveShadow = true;
+  switch (side) {
     case TOP:
-      wall.position.set(positionStep,planeSize / 2+positionStep,positionStep);
-      wall.rotation.set(0,0,Math.PI /2);
+      wall.position.set(
+        positionStep,
+        planeSize / 2 + positionStep,
+        positionStep
+      );
+      wall.rotation.set(0, 0, Math.PI / 2);
       break;
     case RIGHT:
-      wall.position.set(planeSize / 2+positionStep,-positionStep,positionStep);
+      wall.position.set(
+        planeSize / 2 + positionStep,
+        -positionStep,
+        positionStep
+      );
       break;
     case LEFT:
-      wall.position.set(-planeSize / 2-positionStep,positionStep,positionStep);
+      wall.position.set(
+        -planeSize / 2 - positionStep,
+        positionStep,
+        positionStep
+      );
       break;
     case BTM:
-      wall.position.set(-positionStep,-planeSize / 2-positionStep,positionStep);
-      wall.rotation.set(0,0,Math.PI /2);
+      wall.position.set(
+        -positionStep,
+        -planeSize / 2 - positionStep,
+        positionStep
+      );
+      wall.rotation.set(0, 0, Math.PI / 2);
       break;
     default:
-      break;        
+      break;
   }
   gameField.add(wall);
 }
@@ -238,26 +310,34 @@ buidWalls(RIGHT);
 buidWalls(LEFT);
 buidWalls(BTM);
 
-//screen
+/* Screen */
 
 // Board & poles
-const poleGeo = new THREE.BoxGeometry(poleW, poleH,poleL);
-const boardMat = new THREE.MeshStandardMaterial({color: boardColor});
+const poleGeo = new THREE.BoxGeometry(poleW, poleH, poleL);
+const boardMat = new THREE.MeshStandardMaterial({ color: boardColor });
 
 const boardGeo = new THREE.BoxGeometry(boardL, boardW, boardH);
 const board = new THREE.Mesh(boardGeo, boardMat);
 board.castShadow = true;
-board.position.set(0, planeSize/2 +wallW, poleL);
+board.position.set(0, planeSize / 2 + wallW, poleL);
 scene.add(board);
 
 const poleLeft = new THREE.Mesh(poleGeo, boardMat);
 poleLeft.castShadow = true;
-poleLeft.position.set(-boardL/2 + poleOffset, planeSize/2 + poleW/2 +wallW, poleL/2);
+poleLeft.position.set(
+  -boardL / 2 + poleOffset,
+  planeSize / 2 + poleW / 2 + wallW,
+  poleL / 2
+);
 scene.add(poleLeft);
 
 const poleRight = new THREE.Mesh(poleGeo, boardMat);
 poleRight.castShadow = true;
-poleRight.position.set(boardL/2 - poleOffset, planeSize/2 +poleW/2 + wallW, poleL/2);
+poleRight.position.set(
+  boardL / 2 - poleOffset,
+  planeSize / 2 + poleW / 2 + wallW,
+  poleL / 2
+);
 scene.add(poleRight);
 
 // Display parts
@@ -265,7 +345,7 @@ const displayOffset = 0.1;
 const displayPlaneL = new THREE.PlaneGeometry(displayPlaneLW, displayPlaneLH);
 const displayPlaneS = new THREE.PlaneGeometry(displayPlaneSW, displayPlaneSH);
 const displayMat = new THREE.MeshStandardMaterial({
-  color: 'white',
+  color: "white",
   side: THREE.DoubleSide,
 });
 const smallDisplayMat = new THREE.MeshStandardMaterial({
@@ -276,52 +356,67 @@ const smallDisplayMat = new THREE.MeshStandardMaterial({
 const displayL = new THREE.Mesh(displayPlaneL, displayMat);
 displayL.receiveShadow = true;
 displayL.rotation.x = Math.PI / 2;
-displayL.position.set(-boardL/2 + displayPlaneLW/2, -displayOffset, 0);
+displayL.position.set(-boardL / 2 + displayPlaneLW / 2, -displayOffset, 0);
 board.add(displayL);
 
 const displaySTop = new THREE.Mesh(displayPlaneS, smallDisplayMat);
 displaySTop.receiveShadow = true;
 displaySTop.rotation.x = Math.PI / 2;
-displaySTop.position.set(boardL/2 - displayPlaneSW/2, -displayOffset, displayPlaneSH/2);
+displaySTop.position.set(
+  boardL / 2 - displayPlaneSW / 2,
+  -displayOffset,
+  displayPlaneSH / 2
+);
 board.add(displaySTop);
 
 const displaySBtm = new THREE.Mesh(displayPlaneS, smallDisplayMat);
 displaySBtm.receiveShadow = true;
 displaySBtm.rotation.x = Math.PI / 2;
-displaySBtm.position.set(boardL/2 - displayPlaneSW/2, -displayOffset, -displayPlaneSH/2);
+displaySBtm.position.set(
+  boardL / 2 - displayPlaneSW / 2,
+  -displayOffset,
+  -displayPlaneSH / 2
+);
 board.add(displaySBtm);
 
 // Display camera
-function defauldCamRotation(dir) {  
-  switch(dir) {
+function defauldCamRotation(dir) {
+  switch (dir) {
     case LEFT:
-      snakeCamera.rotation.set(Math.PI/4, 0, 0);
-      snakeCamera.rotation.x = Math.PI /2; 
-      snakeCamera.rotation.y = Math.PI /2; 
+      snakeCamera.rotation.set(Math.PI / 4, 0, 0);
+      snakeCamera.rotation.x = Math.PI / 2;
+      snakeCamera.rotation.y = Math.PI / 2;
       break;
-    case RIGHT: 
-      snakeCamera.rotation.set(Math.PI/4, 0, 0);
-      snakeCamera.rotation.x = Math.PI /2;    
-      snakeCamera.rotation.y = -Math.PI /2; 
+    case RIGHT:
+      snakeCamera.rotation.set(Math.PI / 4, 0, 0);
+      snakeCamera.rotation.x = Math.PI / 2;
+      snakeCamera.rotation.y = -Math.PI / 2;
       break;
     case TOP:
-      snakeCamera.rotation.set(Math.PI/4, 0, 0);
+      snakeCamera.rotation.set(Math.PI / 4, 0, 0);
       break;
     case BTM:
-      snakeCamera.rotation.set(Math.PI/4, 0, 0);
-      snakeCamera.rotation.x = -Math.PI/2; 
-      snakeCamera.rotation.z = Math.PI;  
+      snakeCamera.rotation.set(Math.PI / 4, 0, 0);
+      snakeCamera.rotation.x = -Math.PI / 2;
+      snakeCamera.rotation.z = Math.PI;
   }
-};
-const rt = new THREE.WebGLRenderTarget(512, 512);
+}
+
+const rtSize = 512;
+const rt = new THREE.WebGLRenderTarget(rtSize, rtSize);
 displayL.material.map = rt.texture;
 displayL.material.needsUpdate = true;
-const snakeCamera = new THREE.PerspectiveCamera(90, rt.width / rt.height, 0.1, 1000);
+const snakeCamera = new THREE.PerspectiveCamera(
+  90,
+  rt.width / rt.height,
+  0.1,
+  1000
+);
 defauldCamRotation(TOP);
 
 /* Clock */
-const cylinderRadius = displayPlaneSH / 2 - displayPlaneSH*0.1;
-const cylinderHeight = boardW /2;
+const cylinderRadius = displayPlaneSH / 2 - displayPlaneSH * 0.1;
+const cylinderHeight = boardW / 2;
 const cylinderGeo = new THREE.CylinderGeometry(
   cylinderRadius,
   cylinderRadius,
@@ -330,7 +425,7 @@ const cylinderGeo = new THREE.CylinderGeometry(
 );
 const cylinderMat = new THREE.MeshPhysicalMaterial({ color: primaryColor });
 const clockBody = new THREE.Mesh(cylinderGeo, cylinderMat);
-clockBody.rotation.x = -Math.PI/2;
+clockBody.rotation.x = -Math.PI / 2;
 displaySTop.add(clockBody);
 
 // Arrow & Center of the clock
@@ -350,7 +445,7 @@ const createClockBody = () => {
   const arrowSphereGeo = new THREE.SphereGeometry(minArrowRadius, 32, 16);
   const minArrow = new THREE.Mesh(arrowSphereGeo, sphereMaterial);
   const minArrowMatrix = new THREE.Matrix4();
-  minArrowMatrix.makeScale(14, 1, 120); 
+  minArrowMatrix.makeScale(14, 1, 120);
   minArrow.applyMatrix4(minArrowMatrix);
 
   const hourArrowSphereGeo = new THREE.SphereGeometry(hourArrowRadius, 32, 16);
@@ -369,11 +464,11 @@ const createClockBody = () => {
   );
   const boxMaterial = new THREE.MeshBasicMaterial({ color: aggressiveRed });
   const secondsArrow = new THREE.Mesh(boxGeo, boxMaterial);
-    secondsArrow.position.set(
-      hourArrowRadius / 2,
-      -cylinderHeight / 2,
-      secondsArrowHeight / 2
-    );
+  secondsArrow.position.set(
+    hourArrowRadius / 2,
+    -cylinderHeight / 2,
+    secondsArrowHeight / 2
+  );
   clockBody.add(secondsArrow);
 
   const shearMatrix = new THREE.Matrix4();
@@ -397,12 +492,12 @@ let [clkCenter, clkSecondsArrow, clkMinArrow, clkHourArrow] = clockParts;
 const buildClockTicks = () => {
   const bigTickWidth = cylinderRadius * 0.03;
   const bigTickHeight = cylinderRadius * 0.2;
-  const bigTickLength = cylinderHeight + cylinderHeight* 0.3;
+  const bigTickLength = cylinderHeight + cylinderHeight * 0.3;
   let largeAngle = 0;
   let tickColor;
 
-  const smallTickWidth = bigTickWidth /2;
-  const smallTickHeight = bigTickHeight/2;
+  const smallTickWidth = bigTickWidth / 2;
+  const smallTickHeight = bigTickHeight / 2;
   const smallTickLength = bigTickLength;
   let smallAngle = 0;
 
@@ -442,7 +537,7 @@ const buildClockTicks = () => {
     const boxMaterial = new THREE.MeshBasicMaterial({ color: tickColor });
     const clockTick = new THREE.Mesh(boxGeo, boxMaterial);
     clockTick.position.z = cylinderRadius - smallTickHeight / 2;
-    //translate and rotate
+    
     const eu = new THREE.Euler(0, smallAngle, 0);
     const m = new THREE.Matrix4();
     m.makeRotationFromEuler(eu);
@@ -454,15 +549,19 @@ const buildClockTicks = () => {
 buildClockTicks();
 
 /* Run the clock */
-const defaultArrPosition = cylinderRadius / 2 - cylinderRadius*0.1;
+const defaultArrPosition = cylinderRadius / 2 - cylinderRadius * 0.1;
 const setArrowsDefault = () => {
-    clkSecondsArrow.position.set(
-      hourArrowRadius / 2,
-      -cylinderHeight / 2,
-      secondsArrowHeight / 2
-    );
+  clkSecondsArrow.position.set(
+    hourArrowRadius / 2,
+    -cylinderHeight / 2,
+    secondsArrowHeight / 2
+  );
   clkMinArrow.position.set(0, -cylinderHeight / 2, defaultArrPosition);
-  clkHourArrow.position.set(0, -cylinderHeight / 2, defaultArrPosition - defaultArrPosition*0.2);
+  clkHourArrow.position.set(
+    0,
+    -cylinderHeight / 2,
+    defaultArrPosition - defaultArrPosition * 0.2
+  );
 };
 
 const rotateArrow = (secondsNow, minutesNow, hoursNow) => {
@@ -476,7 +575,7 @@ const rotateArrow = (secondsNow, minutesNow, hoursNow) => {
   secMat.makeRotationFromEuler(secEu);
   clkSecondsArrow.position.applyMatrix4(secMat);
   clkSecondsArrow.rotation.y = secAngle;
-  
+
   //minutes
   let minAngle = (minutesNow + secondsratio) * 6 * (Math.PI / 180.0);
   const minEu = new THREE.Euler(0, minAngle, 0);
@@ -515,19 +614,50 @@ const setTimeZone = (timeOffset) => {
   return clockDate;
 };
 
+//Counter
+const floader = new THREE.FontLoader();
+function countScore() {
+  const font = floader.load(
+    "resources/Droid Sans Mono_Regular.json",
+    function (font) {
+      const fontGeo = new THREE.TextGeometry((dequeue.size() - 1).toString(), {
+        font: font,
+        size: fontSize,
+        height: counterH,
+      });
+      displayCounter = new THREE.Mesh(
+        fontGeo,
+        new THREE.MeshStandardMaterial({ color: aggressiveGreen })
+      );
+      displaySBtm.add(displayCounter);
+      displayCounter.position.y = -fontSize / 2;
+      if (dequeue.size() - 1 < 10) {
+        displayCounter.position.x = centerDigitX;
+      } else {
+        displayCounter.position.x = centerDigitsX;
+      }
+    }
+  );
+}
+
+countScore();
 
 // Build snake parts
+const snakeTxt = txtLoader.load("./resources/lavatile.jpg");
+snakeTxt.wrapS = THREE.RepeatWrapping;
+snakeTxt.wrapT = THREE.RepeatWrapping;
+
 function generateSnakePart() {
   const blockWidth = 0.01;
   const blockLength = 0.01;
-  const blockHeight = 0.6;
+  const blockHeight = 0.4;
   const bevelSegm = 10;
-  const bevelThik = 0.1;
+  const bevelThik = 0.2;
   const blockShape = new THREE.Shape();
-  blockShape.moveTo(0, 0 );
+  blockShape.moveTo(0, 0);
   blockShape.lineTo(0, blockWidth);
-  blockShape.lineTo(blockLength,blockWidth);
-  blockShape.lineTo( blockLength, 0 );
+  blockShape.lineTo(blockLength, blockWidth);
+  blockShape.lineTo(blockLength, 0);
   blockShape.lineTo(0, 0);
 
   const extrudeSettings = {
@@ -537,7 +667,7 @@ function generateSnakePart() {
     bevelThickness: bevelThik,
     bevelSize: positionStep,
     bevelOffset: 0,
-    bevelSegments: bevelSegm
+    bevelSegments: bevelSegm,
   };
 
   let x = 0;
@@ -566,13 +696,16 @@ function generateSnakePart() {
     colorPart = colorTail;
   }
 
-  const snakeGeo = new THREE.ExtrudeGeometry( blockShape, extrudeSettings );
-  const snakeMat = new THREE.MeshStandardMaterial( { color: colorPart} );
-  const snakeblockMesh = new THREE.Mesh( snakeGeo, snakeMat );
+  const snakeGeo = new THREE.ExtrudeGeometry(blockShape, extrudeSettings);
+  const snakeMat = new THREE.MeshStandardMaterial({
+    color: colorPart,
+    map: snakeTxt,
+  });
+  const snakeblockMesh = new THREE.Mesh(snakeGeo, snakeMat);
   snakeblockMesh.receiveShadow = true;
   snakeblockMesh.castShadow = true;
 
-  snakeblockMesh.position.set(x, y, bevelThik*2);
+  snakeblockMesh.position.set(x, y, bevelThik);
   dequeue.insertBack(snakeblockMesh);
   scene.add(snakeblockMesh);
 
@@ -580,33 +713,40 @@ function generateSnakePart() {
 }
 
 // Load an apple object
-loader.load('./resources/Apple.obj',
-	function (obj) {
-    let x = generateRandomLocation() + positionStep;
-    let y = generateRandomLocation() + positionStep;
-    
-		const material = new THREE.MeshLambertMaterial({ color: ballColor });
-    obj.children.forEach(c => c.material = material);    
-    obj.scale.setScalar(appleScaler);
+const appleTxt = txtLoader.load("./resources/Apple_BaseColor.png");
+const appleNormMap = txtLoader.load("./resources/Apple_Normal.png");
+const appleSpecularMap = txtLoader.load("./resources/Apple_Roughness.png");
 
-    for (let i = 0; i < snakeParts.length; i++) {
-      while (
-        snakeParts[i].position.x == x &&
-        snakeParts[i].position.y == y
-      ) {
-        x = generateRandomLocation() + positionStep;
-        y = generateRandomLocation() + positionStep;
-      }
+loader.load("./resources/Apple.obj", function (obj) {
+  let x = generateRandomLocation() + positionStep;
+  let y = generateRandomLocation() + positionStep;
+
+  const material = new THREE.MeshPhongMaterial({
+    color: "white",
+    map: appleTxt,
+    normalMap: appleNormMap,
+    specularMap: appleSpecularMap,
+  });
+  obj.children.forEach((c) => (c.material = material));
+  obj.children.forEach((c) => {
+    c.castShadow = true;
+    c.receiveShadow = true;
+  });
+  obj.scale.setScalar(appleScaler);
+
+  for (let i = 0; i < snakeParts.length; i++) {
+    while (snakeParts[i].position.x == x && snakeParts[i].position.y == y) {
+      x = generateRandomLocation() + positionStep;
+      y = generateRandomLocation() + positionStep;
     }
-    obj.position.set(x, y, appleRad);
-    obj.rotation.x = Math.PI/2;
-    obj.castShadow = true;
-    obj.receiveShadow = true;
-    scene.add(obj);
-    apple = obj;
-	},
-);
+  }
+  obj.position.set(x, y, appleRad);
+  obj.rotation.x = Math.PI / 2;
+  scene.add(obj);
+  apple = obj;
+});
 
+let displayCounter;
 function pickupBall() {
   if (
     dequeue.getFront().position.x == apple.position.x &&
@@ -620,8 +760,8 @@ function pickupBall() {
     for (let i = 0; i < sParts.length; i++) {
       if (sParts[i] !== null) {
         while (
-          sParts[i].position.x == x + positionStep &&
-          sParts[i].position.y == y + positionStep
+          Math.abs(x + positionStep - sParts[i].position.x) < positionStep &&
+          Math.abs(y + positionStep - sParts[i].position.y) < positionStep
         ) {
           x = generateRandomLocation();
           y = generateRandomLocation();
@@ -631,6 +771,9 @@ function pickupBall() {
     apple.position.set(x + positionStep, y + positionStep, positionStep);
 
     generateSound(PICKUP_BALL_SOUND);
+    displaySBtm.remove(displayCounter);
+
+    countScore();
   }
 }
 
@@ -691,6 +834,7 @@ function restartGame() {
     pressedKeyCode = 0;
     setTimeout(function () {
       alert("Game over! You score is " + score);
+      displaySBtm.remove(displayCounter);
     }, 200);
     generateSnakePart();
   }
@@ -700,18 +844,18 @@ generateSnakePart();
 
 // * Render loop
 const controls = new THREE.TrackballControls(camera, renderer.domElement);
-const clock = new THREE.Clock();
 
 function render() {
   requestAnimationFrame(render);
+  skyBox.position.copy(camera.position);
+
   runClock();
   pickupBall();
   restartGame();
- //snakeCamera.position.copy(dequeue.getFront().position);
-snakeCamera.position.y = dequeue.getFront().position.y;
-snakeCamera.position.x = dequeue.getFront().position.x;
-snakeCamera.position.z = dequeue.getFront().position.z+2;
-  
+
+  snakeCamera.position.copy(dequeue.getFront().position);
+  snakeCamera.position.z += 2;
+
   renderer.setRenderTarget(null);
   renderer.render(scene, camera);
 
@@ -721,12 +865,6 @@ snakeCamera.position.z = dequeue.getFront().position.z+2;
   controls.update();
 }
 render();
-
-
-
-
-
-
 
 // * Deque: https://learnersbucket.com/tutorials/data-structures/implement-deque-data-structure-in-javascript/
 
@@ -739,24 +877,23 @@ function Deque() {
 
   //To store the data
   let items = {};
-  this.getValues = () => {return Object.values(items);};
+  this.getValues = () => {
+    return Object.values(items);
+  };
 
   //Add an item on the front
   this.insertFront = (elm) => {
-
-    if(this.isEmpty()){
+    if (this.isEmpty()) {
       //If empty then add on the back
       this.insertBack(elm);
-
-    }else if(lowestCount > 0){
+    } else if (lowestCount > 0) {
       //Else if there is item on the back
       //then add to its front
       items[--lowestCount] = elm;
-
-    }else{
+    } else {
       //Else shift the existing items
       //and add the new to the front
-      for(let i = count; i > 0; i--){
+      for (let i = count; i > 0; i--) {
         items[i] = items[i - 1];
       }
 
@@ -773,7 +910,7 @@ function Deque() {
   //Remove the item from the front
   this.removeFront = () => {
     //if empty return null
-    if(this.isEmpty()){
+    if (this.isEmpty()) {
       return null;
     }
 
@@ -787,7 +924,7 @@ function Deque() {
   //Remove the item from the back
   this.removeBack = () => {
     //if empty return null
-    if(this.isEmpty()){
+    if (this.isEmpty()) {
       return null;
     }
 
@@ -801,7 +938,7 @@ function Deque() {
   //Peek the first element
   this.getFront = () => {
     //If empty then return null
-    if(this.isEmpty()){
+    if (this.isEmpty()) {
       return null;
     }
 
@@ -812,7 +949,7 @@ function Deque() {
   //Peek the last element
   this.getBack = () => {
     //If empty then return null
-    if(this.isEmpty()){
+    if (this.isEmpty()) {
       return null;
     }
 
@@ -841,7 +978,7 @@ function Deque() {
   //From front to back
   this.toString = () => {
     if (this.isEmpty()) {
-      return '';
+      return "";
     }
     let objString = `${items[lowestCount]}`;
     for (let i = lowestCount + 1; i < count; i++) {
@@ -850,29 +987,3 @@ function Deque() {
     return objString;
   };
 }
-
-/*
-- Add lights and shadow casting +
-- Create a playing +grey plane, +walls (height - 1), dashboard +
-- Make cubes with rounded corners for the snake + (extrude, bevel req-6)
-- Replace balls by the apples +
-- Add image from the snake head camera to the display 
-- Add clock on the right side of the display board +
-- Add shadow casting from the walls, apples, display board and the snake itself
-- Add score counter to the bottom right
-- Apply textures:
--- Cube environment
--- Checker board texture and map
--- Walls repeat-wrapping to value 3, apply bump map (scale 0,1)
--- Apply texture to the snake (sorokonozka, gusenica?)
--- Apple: texture, maps
-- Uncomment the sounds
-- Delete axis helpers
-- position camera properly 
-- Block default scrolling of the browser
-- rename key numbers to variables or update event listener -> key
-- Make walls thiner
-- Investigate white cube
-- delete grid helpers and colors of grid helper
-- check generate apple and random borders 
-*/
