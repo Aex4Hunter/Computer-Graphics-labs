@@ -336,36 +336,17 @@ function render() {
   restartGame();
 
   //camera rotation
-  const cameraPosition = new THREE.Vector3(
-    -Math.sin(angularVelocity * t),
-    Math.cos(angularVelocity * t),
-    0
-  ).multiplyScalar(radiusCamera * angularVelocity * distanceFromSphere);
-  camera.position.add(cameraPosition.multiplyScalar(h));
+  // const cameraPosition = new THREE.Vector3(
+  //   -Math.sin(angularVelocity * t),
+  //   Math.cos(angularVelocity * t),
+  //   0
+  // ).multiplyScalar(radiusCamera * angularVelocity * distanceFromSphere);
+  // camera.position.add(cameraPosition.multiplyScalar(h));
 
   renderer.render(scene, camera);
   controls.update();
 }
 render();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
